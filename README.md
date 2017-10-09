@@ -1,6 +1,10 @@
 # Implementation-of-Deficit-Round-Robin-in-ns-3
 Implementation of Deficit Round Robin (DRR), a queue discipline for the network scheduler in ns-3
 
+## Course Code: CO300
+
+## Assignment: #22
+
 ## TODO
 
 ## Resources
