@@ -1,0 +1,65 @@
+Having gone through codes for 
+(for having a fine picture of what we need to implement)
+1. Codel-queue-disc
+2. Pfifo-fast-queue-disc
+3. Fq-codel-queue-disc
+4. packet-filter.cc
+5. Ipv4-packet-filter.cc
+(for knowing how to deal with the packets, filters and internal queues in the code)
+1. queue.h
+2. queue-item.h
+3. packet.h
+4. fq-codel-queue-disc-test-suite.cc
+
+
+We will be following a structure similar to what is followed in fq-codel-queue-disc instead of what is followed in pfifo-fast-queue-disc.
+
+
+Github Gist for the header file we created for DRR: https://gist.github.com/kaushiksk/dc66bbf1565c4d620489e865cb913626
+
+
+
+
+According to this Internet Draft (https://tools.ietf.org/html/draft-ietf-aqm-fq-codel-06#page-4), FQ-CoDel is basically a hybrid of DRR and CoDel queue disciplines, and the way it is is structured is exactly how we would want to structure the DRR code, the only differences being the packet filters and some finer details in enqueue, dequeue operations.
+
+
+On dequeue, FQ-CoDel selects a queue from which to dequeue by a two-tier round-robin scheme, in which each queue is allowed to dequeue up to a configurable quantum of bytes for each iteration.  Deviations from this quantum is maintained as byte credits(basically like deficit counter in DRR) for the queue, which serves to make the fairness scheme byte-based rather than packet-based.
+Fundamentally this is similar to DRR in terms of its code structure. However, Unlike DRR, FQ-CoDel differentiates between “new” and “old” queues. 
+
+
+Structural Differences between pfifo and fq-codel:
+* Pfifo uses a predefined number of Internal queues  while fq-codel doesn’t use any internal queues
+* Fq-codel defines a new class, and each flow corresponds to an instance of the class. This ensures that all attributes of a flow are associated with a separate object(exactly what we want for drr). 
+* Pfifo does not use any external packet filter but rather defines the classification function within the DoEnqueue function. Whereas, in Fq-Codel a packet filter is used that is defined in ipv4-packet-filter.h invoked using the DoClassify() function.
+
+
+The way fq-codel-queue-disc is written is exactly how we would want to implement DRR. Even though the two disciplines might be different in their implementation, structurally they follow the exact same principles with slight modifications.
+
+Primarily, we will just need to define a DoClassify function for a DRRPacketFilter object just like how it has been done for fqCodelPacketFilter here : https://www.nsnam.org/doxygen/ipv4-packet-filter_8cc_source.html 
+And then define the enqueue, dequeue operations based on our requirements, for which we will just refer the ns2 and linux kernel code.
+
+Classify 
+This is the main function that we are concerned with. Every QueueDisc has a Classify function, that goes through the list of filters for the current QueueDisc and run filter->Classify on the enqueued item. If the item passes any of the filters, then we are done, it returns whatever value it is supposed to, which in our case will be the hash.
+
+
+DRRQueueDisc (to be defined in traffic control model)
+* This class consists of a vector of filters (inherited from the QueueDisc class defined in traffic-control/model/queue-disc.h) that is used by the Classify function inherited from the QueueDisc class (Classify function basically goes through the list of filters for the current QueueDisc and run filter->Classify on the enqueued item)
+* When the test suite is run, we add the DRRFIlter to the DRRQueueDisc object
+
+
+The flow for creating the drrFilter class is as follows:
+
+
+PacketFilter Class (already defined in build/ns3/packet-filter.h) has 2 functions defined
+* A virtual function DoClassify which is to be defined in the child class (DRRfilter in our case)
+* Classify() function which calls the DoClassify() function after checking the protocol used in the packet.
+
+
+Ipv4PacketFilter Class (already defined in build/ns3/ipv4-packet-filter.h)
+* This inherits from the PacketFilter class 
+* Includes a CheckProtocol Function which basically checks whether the protocol is Ipv4 or not. This is to ensure the Ipv6 packets do not pass to the Classify function stage
+
+
+DrrFilter Class (to be defined in ipv4-packet-filter.h) 
+* This class inherits from the Ipv4PacketFilter class defined in the same header file which in turn inherits from the PacketFilter class in the packet-filter.h 
+* DoClassify() function (which was earlier defined as a virtual function) is now described here specifically for DRR. 
