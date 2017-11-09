@@ -14,7 +14,7 @@ namespace ns3 {
 * \brief A flow queue used by the DRR queue disc
 */
 
-Class DRRFlow : public QueueDiscClass {
+class DRRFlow : public QueueDiscClass {
 Public:
 
  /**
@@ -154,3 +154,4 @@ private:
 } // namespace ns3
 
 #endif /* DRR_QUEUE_DISC */
+

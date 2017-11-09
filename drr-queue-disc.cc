@@ -17,7 +17,7 @@
  *
  * Authors: Akhil Udathu <akhilu077@gmail.com>
  *          Kaushik S Kalmady <kaushikskalmady@gmail.com>
- 			Vilas M <vilasnitk19@gmail.com>
+            Vilas M <vilasnitk19@gmail.com>
 */
 
 #include "ns3/log.h"
@@ -228,12 +228,12 @@ DRRQueueDisc::DoDequeue (void)
             }
 
             return item;
-          }			//End if(flow->GetDeficit ...)
+          }     //End if(flow->GetDeficit ...)
         }
       else
       {
-     	 NS_LOG_DEBUG("No active flows found");
-      	 return 0;
+       NS_LOG_DEBUG("No active flows found");
+         return 0;
       }
     } while (item == 0);
   return 0; //never reached
@@ -298,13 +298,14 @@ DRRQueueDisc::InitializeParams (void)
       NS_LOG_DEBUG ("Setting the quantum to the MTU of the device: " << m_quantum);
     }
 
-  m_flowFactory.SetTypeId ("ns3::FqCoDelFlow");
+  m_flowFactory.SetTypeId ("ns3::DRRFlow");
 
-  m_queueDiscFactory.SetTypeId ("ns3::CoDelQueueDisc");
-  m_queueDiscFactory.Set ("Mode", EnumValue (CoDelQueueDisc::QUEUE_DISC_MODE_PACKETS));
-  m_queueDiscFactory.Set ("MaxPackets", UintegerValue (m_limit + 1));
-  m_queueDiscFactory.Set ("Interval", StringValue (m_interval));
-  m_queueDiscFactory.Set ("Target", StringValue (m_target));
+  m_queueDiscFactory.SetTypeId ("ns3::DRRQueueDisc");
+
+  //m_queueDiscFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_BYTES));
+  //m_queueDiscFactory.Set ("MaxPackets", UintegerValue (m_limit + 1));
+ // m_queueDiscFactory.Set ("Interval", StringValue (m_interval));
+ //m_queueDiscFactory.Set ("Target", StringValue (m_target));
 }
 
 uint32_t
