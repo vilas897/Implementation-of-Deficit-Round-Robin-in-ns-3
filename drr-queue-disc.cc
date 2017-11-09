@@ -208,15 +208,15 @@ DRRQueueDisc::DoDequeue (void)
           flow = m_flowList.front ();
           m_flowList.pop_front ();
           flow->IncreaseDeficit (m_quantum);
-          item = flow->GetQueueDisc ()->Peek ();
+          Ptr<const QueueDiscItem> t_item = flow->GetQueueDisc ()->Peek ();
 
-          if(flow->GetDeficit() >= item->GetSize ())
+          if( (uint32_t) flow->GetDeficit() >= t_item->GetSize ())
           {
             item = flow->GetQueueDisc ()->Dequeue ();
             flow->IncreaseDeficit (-item->GetSize ());
             NS_LOG_DEBUG ("Dequeued packet " << item->GetPacket ());
 
-            if(flow->GetNPackets () == 0)
+            if(flow->GetQueueDisc ()->GetNPackets () == 0)
             {
               flow->SetDeficit(0);
               flow->SetStatus(DRRFlow::INACTIVE);
