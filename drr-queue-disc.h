@@ -15,7 +15,7 @@ namespace ns3 {
 */
 
 class DRRFlow : public QueueDiscClass {
-Public:
+public:
 
  /**
   * \brief Get the type ID.
@@ -79,7 +79,7 @@ Public:
 
 
 private:
- int32_t m_deficit;	//!< the deficit for this flow
+ uint32_t m_deficit;	//!< the deficit for this flow
  FlowStatus m_status;  //!< the status of this flow
 };
 
@@ -102,7 +102,7 @@ public:
   */
 DRRQueueDisc ();
 
- virtual ~DRRDRRQueueDisc ();
+ virtual ~DRRQueueDisc ();
 
 
   /**
@@ -120,6 +120,11 @@ DRRQueueDisc ();
  */
   uint32_t GetQuantum (void) const;
 
+  // Reasons for dropping packets
+  static constexpr const char* UNCLASSIFIED_DROP = "Unclassified drop";  //!< No packet filter able to classify packet
+  static constexpr const char* OVERLIMIT_DROP = "Overlimit drop";        //!< Overlimit dropped packets
+
+
 private:
  virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
  virtual Ptr<QueueDiscItem> DoDequeue (void);
@@ -131,24 +136,20 @@ private:
   * \brief Drop a packet from the tail of the queue with the largest current byte count (Packet Stealing)
   * \return the index of the queue with the largest current byte count
   */
- uint32_t DRRDrop (void);
+  uint32_t DRRDrop (void);
 
- uint32_tm_mask; 		/*if set hashes on just the node address otherwise on
-       node+port address*/
- uint32_t m_bytes ; 		//cumulative sum of bytes across all flows
- uint32_t m_packets ; 	// cumulative sum of packets across all flows
- uint32_t m_limit;      		//!< Maximum number of bytes in the queue disc
- uint32_t m_quantum;    	//!< Deficit assigned to flows at each round
- uint32_t m_flows;      	//!< Number of flow queues
- uint32_t m_dropBatchSize;  //!< Max number of packets dropped from the fat flow
+  uint32_t m_packets ;     //!< cumulative sum of packets across all flows
+  uint32_t m_limit;              //!< Maximum number of bytes in the queue disc
+  uint32_t m_quantum;        //!< total number of bytes that a flow can send
+  uint32_t m_flows;          //!< Number of flow queues
 
 
- std::list<Ptr<DRRFlow> > m_Flows;	//!< The list of flows
+  std::list<Ptr<DRRFlow> > m_flowList;    //!< The list of flows
 
- std::map<uint32_t, uint32_t> m_flowsIndices;	//!< Map with the index of class for each flow
+  std::map<uint32_t, uint32_t> m_flowsIndices;    //!< Map with the index of class for each flow
 
- ObjectFactory m_flowFactory;     	//!< Factory to create a new flow
- ObjectFactory m_queueDiscFactory;	//!< Factory to create a new queue
+  ObjectFactory m_flowFactory;         //!< Factory to create a new flow
+  ObjectFactory m_queueDiscFactory; //!< Factory to create a new queue
 };
 
 } // namespace ns3
