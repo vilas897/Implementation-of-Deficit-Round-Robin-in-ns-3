@@ -17,7 +17,7 @@
  *
  * Authors: Akhil Udathu <akhilu077@gmail.com>
  *          Kaushik S Kalmady <kaushikskalmady@gmail.com>
-            Vilas M <vilasnitk19@gmail.com>
+ 			      Vilas M <vilasnitk19@gmail.com>
 */
 
 #include "ns3/log.h"
@@ -25,6 +25,8 @@
 #include "ns3/queue.h"
 #include "drr-queue-disc.h"
 #include "ns3/net-device-queue-interface.h"
+#include "ns3/ipv4-packet-filter.h"
+#include "codel-queue-disc.h"
 
 namespace ns3 {
 
@@ -100,7 +102,7 @@ TypeId DRRQueueDisc::GetTypeId (void)
     .AddConstructor<DRRQueueDisc> ()
     .AddAttribute ("ByteLimit",
                    "The hard limit on the real queue size, measured in bytes",
-                   UintegerValue (10 * 1024),
+                   UintegerValue (1000 * 1024),
                    MakeUintegerAccessor (&DRRQueueDisc::m_limit),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Flows",
@@ -143,6 +145,7 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
   int32_t ret = Classify (item);
 
+
   if (ret == PacketFilter::PF_NO_MATCH)
     {
       NS_LOG_ERROR ("No filter has been able to classify this packet, drop it.");
@@ -150,6 +153,7 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
       return false;
     }
 
+  
   uint32_t h = ret % m_flows;
 
   Ptr<DRRFlow> flow;
@@ -169,15 +173,17 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
       flow = StaticCast<DRRFlow> (GetQueueDiscClass (m_flowsIndices[h]));
     }
 
-  if (flow->GetStatus () == DRRFlow::INACTIVE)
-    {
-      flow->SetStatus (DRRFlow::ACTIVE);
-      m_flowList.push_back (flow);
-    }
 
   flow->GetQueueDisc ()->Enqueue (item);
 
   NS_LOG_DEBUG ("Packet enqueued into flow " << h << "; flow index " << m_flowsIndices[h]);
+
+  if (flow->GetStatus () == DRRFlow::INACTIVE)
+  {
+    NS_LOG_DEBUG("Setting flow as ACTIVE");
+    flow->SetStatus (DRRFlow::ACTIVE);
+    m_flowList.push_back (flow);
+  }
 
   while (GetNBytes () > m_limit)
     {
@@ -218,24 +224,34 @@ DRRQueueDisc::DoDequeue (void)
 
             if(flow->GetQueueDisc ()->GetNPackets () == 0)
             {
+              NS_LOG_DEBUG("Empty Flow, Setting it to INACTIVE");
               flow->SetDeficit(0);
               flow->SetStatus(DRRFlow::INACTIVE);
             }
 
             else
             {
+                NS_LOG_DEBUG("Flow still active, pushing back to active list");
                 m_flowList.push_back(flow);
             }
 
             return item;
-          }     //End if(flow->GetDeficit ...)
+          }			//End if(flow->GetDeficit ...)
+
+          else
+          {
+            NS_LOG_DEBUG("Packet size greater than deficit, pushing flow back to end of list");
+            m_flowList.push_back(flow);
+            item = 0;
+          }
         }
       else
       {
-       NS_LOG_DEBUG("No active flows found");
-         return 0;
+     	    NS_LOG_DEBUG("No active flows found");
+      	  return 0;
       }
     } while (item == 0);
+
   return 0; //never reached
 }
 
@@ -270,6 +286,8 @@ DRRQueueDisc::CheckConfig (void)
 
   if (GetNPacketFilters () == 0)
     {
+     // Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
+      //AddPacketFilter (ipv4Filter);
       NS_LOG_ERROR ("DRRQueueDisc needs at least a packet filter");
       return false;
     }
@@ -292,15 +310,16 @@ DRRQueueDisc::InitializeParams (void)
   // set the quantum to the MTU of the device
   if (!m_quantum)
     {
-      Ptr<NetDevice> device = GetNetDevice ();
-      NS_ASSERT_MSG (device, "Device not set for the queue disc");
-      m_quantum = device->GetMtu ();
-      NS_LOG_DEBUG ("Setting the quantum to the MTU of the device: " << m_quantum);
+      //Ptr<NetDevice> device = GetNetDevice ();
+      //NS_ASSERT_MSG (device, "Device not set for the queue disc");
+      //m_quantum = device->GetMtu ();
+      m_quantum=600;
+      NS_LOG_DEBUG ("Setting the quantum to: " << m_quantum);
     }
 
   m_flowFactory.SetTypeId ("ns3::DRRFlow");
 
-  m_queueDiscFactory.SetTypeId ("ns3::DRRQueueDisc");
+  m_queueDiscFactory.SetTypeId ("ns3::CoDelQueueDisc");
 
   //m_queueDiscFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_BYTES));
   //m_queueDiscFactory.Set ("MaxPackets", UintegerValue (m_limit + 1));
