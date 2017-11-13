@@ -76,6 +76,32 @@ private:
   uint32_t m_perturbation; //!< hash perturbation value
 };
 
+
+
+/**
+ * \ingroup internet
+ *
+ * DRRIpv4PacketFilter is the filter to be added to the DRRQueueDisc
+ * to simulate the behavior of the DRR Linux queue disc.
+ *       */
+class DRRIpv4PacketFilter : public Ipv4PacketFilter {
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  DRRIpv4PacketFilter ();
+  virtual ~DRRIpv4PacketFilter ();
+
+private:
+  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
+
+  uint32_t m_mask;  //!< if not set hashes on just the node address otherwise on masked node address
+};
+
+
 } // namespace ns3
 
 #endif /* IPV4_PACKET_FILTER */
