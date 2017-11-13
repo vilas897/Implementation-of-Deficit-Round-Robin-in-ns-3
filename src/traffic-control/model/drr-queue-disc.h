@@ -155,4 +155,3 @@ private:
 } // namespace ns3
 
 #endif /* DRR_QUEUE_DISC */
-
