@@ -522,49 +522,50 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
 
   // Add 2 packet from the first flow
   AddPacket (queueDisc, hdr, 500);
-  hdr.SetPayloadSize (400);  
-  AddPacket (queueDisc, hdr, 800);
+  hdr.SetPayloadSize (600);  
+  AddPacket (queueDisc, hdr, 600);
 
   hdr.SetDestination (Ipv4Address ("10.10.1.3"));
-  hdr.SetPayloadSize (600);
-  AddPacket (queueDisc, hdr, 600);
+  hdr.SetPayloadSize (800);
+  AddPacket (queueDisc, hdr, 800);
   // Size of this is 500 + 20 bytes
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 3, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the first flow queue");
   // Total bytes = 500 + 20 + 400 + 20 (header is 20 bytes long)
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 1560, "unexpected number of bytes in the first flow queue");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 1140, "unexpected number of bytes in the first flow queue");
    
   Ptr<DRRFlow> flow1 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (0));
+  Ptr<DRRFlow> flow2 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (1));
   //NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), static_cast<int32_t> (queueDisc->GetQuantum ()), "the deficit of the first flow must equal the quantum");
   NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues");
+  NS_TEST_ASSERT_MSG_EQ (flow2->GetStatus (), DRRFlow::ACTIVE, "the second flow must be in the list of active queues");
   // Dequeue a packet
   queueDisc->Dequeue ();
+  //First flow should now have 1 packet 620 bytes and deficit of 600 - 520 = 80
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 2, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 1040, "unexpected number of bytes in the first flow queue");
-  // the deficit for the first flow becomes 600 - (500+20) = 80
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 80, "unexpected deficit for the first flow");
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues since there is one packet left");
-  
-  //Dequeue second packet
-  queueDisc->Dequeue ();
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 1, "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the first flow queue");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 620, "unexpected number of bytes in the first flow queue");
-  // the deficit for the first flow becomes 80 + 600 - (400+20) = 260
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 260, "unexpected deficit for the first flow");
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues since there is one packet left");
-
-  // dequeue last packet
+  NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 80, "unexpected deficit for the first flow");
+  
+  ///Dequeue second packet
   queueDisc->Dequeue ();
+  //the deficit for the second flow becomes 600 but packet is not dequeued since size is more than deficit
+  //As a result now packet is dequeud again from the first flow since deficit there is greater than packet size
+  // deficit increases to 80 + 600 = 680>600
+  NS_TEST_ASSERT_MSG_EQ (flow2->GetDeficit (), 600, "unexpected deficit for the first flow");
+  NS_TEST_ASSERT_MSG_EQ (flow2->GetStatus (), DRRFlow::ACTIVE, "the second flow must be in the list of active queues since there is one packet left");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 1, "unexpected number of packets in the queue disc");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 0, "unexpected number of packets in the first flow queue");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
+
+  
+  //Dequeue third packet
+  queueDisc->Dequeue ();
+  //Now deficit = 1200 > 800, so packet is dequeued
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 0, "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 0, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 0, "unexpected number of bytes in the first flow queue");
-  // the deficit for the first flow becomes 260 + 600 - (600+20) = 280
-  // But since there are no packets left, it is set back to 0
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 0, "unexpected deficit for the first flow");
-  NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::INACTIVE, "the first flow must be in the list of inactive queues");
-  // Add two packets from the first flow
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 0, "unexpected number of packets in the second flow queue");
 
   Simulator::Destroy ();
 }
@@ -583,6 +584,8 @@ DRRQueueDiscTestSuite::DRRQueueDiscTestSuite ()
   AddTestCase (new DRRQueueDiscTCPFlowsSeparation, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscUDPFlowsSeparation, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscDeficitVariableSizeSameFlow, TestCase::QUICK);
+  AddTestCase (new DRRQueueDiscDeficitVariableSizeDifferentFlow, TestCase::QUICK);
+ 
   
 }
 
