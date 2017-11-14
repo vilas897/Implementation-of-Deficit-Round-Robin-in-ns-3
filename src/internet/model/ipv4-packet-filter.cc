@@ -159,13 +159,7 @@ DRRIpv4PacketFilter::GetTypeId (void)
     .SetParent<Ipv4PacketFilter> ()
     .SetGroupName ("Internet")
     .AddConstructor<DRRIpv4PacketFilter> ()
-    .AddAttribute ("Mask",
-                   "The network mask used as an additional input to the hash function of this filter",
-                   UintegerValue (0),
-                   MakeUintegerAccessor (&DRRIpv4PacketFilter::m_mask),
-                   MakeUintegerChecker<uint32_t> ())
-    // Attribute is unnecessary
-  ;
+    ;
   return tid;
 }
 

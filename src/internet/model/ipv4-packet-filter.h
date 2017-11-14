@@ -98,7 +98,6 @@ public:
 private:
   virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
 
-  uint32_t m_mask;  //!< if not set hashes on just the node address otherwise on masked node address
 };
 
 

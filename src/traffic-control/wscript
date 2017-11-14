@@ -19,8 +19,8 @@ def build(bld):
       'model/pie-queue-disc.cc',
       'model/mq-queue-disc.cc',
       'helper/traffic-control-helper.cc',
-      'helper/queue-disc-container.cc’,
-      ‘model/drr-queue-disc.cc’
+      'helper/queue-disc-container.cc',
+      'model/drr-queue-disc.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('traffic-control')
@@ -29,8 +29,8 @@ def build(bld):
       'test/codel-queue-disc-test-suite.cc',
       'test/adaptive-red-queue-disc-test-suite.cc',
       'test/pie-queue-disc-test-suite.cc',
-      'test/tc-flow-control-test-suite.cc’,
-      ‘test/drr-test-suite.cc’
+      'test/tc-flow-control-test-suite.cc',
+      'test/drr-test-suite.cc'
         ]
 
     headers = bld(features='ns3header')
@@ -46,8 +46,8 @@ def build(bld):
       'model/pie-queue-disc.h',
       'model/mq-queue-disc.h',
       'helper/traffic-control-helper.h',
-      'helper/queue-disc-container.h’,
-      ‘model/drr-queue-disc.h’
+      'helper/queue-disc-container.h',
+      'model/drr-queue-disc.h'
         ]
 
     if bld.env.ENABLE_EXAMPLES:
