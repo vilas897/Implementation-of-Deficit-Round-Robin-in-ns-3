@@ -185,7 +185,11 @@ DRRIpv4PacketFilter::DoClassify (Ptr<QueueDiscItem> item) const
   NS_LOG_FUNCTION (this << item);
   Ptr<Ipv4QueueDiscItem> ipv4Item = DynamicCast<Ipv4QueueDiscItem> (item);
 
-  NS_ASSERT (ipv4Item != 0);
+    if (!ipv4Item)
+      {
+        NS_LOG_DEBUG ("No match");
+        return PacketFilter::PF_NO_MATCH;
+      }
 
   Ipv4Header hdr = ipv4Item->GetHeader ();
   Ipv4Address src = hdr.GetSource ();
