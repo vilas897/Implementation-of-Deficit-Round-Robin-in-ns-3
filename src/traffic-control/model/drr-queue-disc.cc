@@ -17,7 +17,7 @@
  *
  * Authors: Akhil Udathu <akhilu077@gmail.com>
  *          Kaushik S Kalmady <kaushikskalmady@gmail.com>
-                              Vilas M <vilasnitk19@gmail.com>
+ *          Vilas M <vilasnitk19@gmail.com>
 */
 
 #include "ns3/log.h"
