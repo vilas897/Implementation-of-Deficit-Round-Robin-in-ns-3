@@ -144,17 +144,18 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   NS_LOG_FUNCTION (this << item);
 
   int32_t ret = Classify (item);
-
+  uint32_t h
 
   if (ret == PacketFilter::PF_NO_MATCH)
     {
-      NS_LOG_ERROR ("No filter has been able to classify this packet, drop it.");
-      DropBeforeEnqueue (item, UNCLASSIFIED_DROP);
-      return false;
+      NS_LOG_WARN ("No filter has been able to classify this packet.");
+      h = m_flows; // place all unfiltered packets into a separate flow queue
     }
 
-  
-  uint32_t h = ret % m_flows;
+  else
+  {
+    h = ret % m_flows;
+  }
 
   Ptr<DRRFlow> flow;
   if (m_flowsIndices.find (h) == m_flowsIndices.end ())
