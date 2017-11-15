@@ -17,7 +17,7 @@
  *
  * Authors: Akhil Udathu <akhilu077@gmail.com>
  *          Kaushik S Kalmady <kaushikskalmady@gmail.com>
- 			      Vilas M <vilasnitk19@gmail.com>
+                              Vilas M <vilasnitk19@gmail.com>
 */
 
 #include "ns3/log.h"
@@ -110,7 +110,7 @@ TypeId DRRQueueDisc::GetTypeId (void)
                    UintegerValue (1024),
                    MakeUintegerAccessor (&DRRQueueDisc::m_flows),
                    MakeUintegerChecker<uint32_t> ())
-    ;
+  ;
   return tid;
 }
 
@@ -153,9 +153,9 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
     }
 
   else
-  {
-    h = ret % m_flows;
-  }
+    {
+      h = ret % m_flows;
+    }
 
   Ptr<DRRFlow> flow;
   if (m_flowsIndices.find (h) == m_flowsIndices.end ())
@@ -180,11 +180,11 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   NS_LOG_DEBUG ("Packet enqueued into flow " << h << "; flow index " << m_flowsIndices[h]);
 
   if (flow->GetStatus () == DRRFlow::INACTIVE)
-  {
-    NS_LOG_DEBUG("Setting flow as ACTIVE");
-    flow->SetStatus (DRRFlow::ACTIVE);
-    m_flowList.push_back (flow);
-  }
+    {
+      NS_LOG_DEBUG ("Setting flow as ACTIVE");
+      flow->SetStatus (DRRFlow::ACTIVE);
+      m_flowList.push_back (flow);
+    }
 
   while (GetNBytes () > m_limit)
     {
@@ -202,56 +202,57 @@ DRRQueueDisc::DoDequeue (void)
   Ptr<DRRFlow> flow;
   Ptr<QueueDiscItem> item;
 
-    if(m_flowList.empty ())
+  if (m_flowList.empty ())
     {
-      NS_LOG_DEBUG("No active flows found");
+      NS_LOG_DEBUG ("No active flows found");
       return 0;
     }
 
-    do
+  do
     {
-        if (!m_flowList.empty ()) // unnecessary ?
+      if (!m_flowList.empty ())   // unnecessary ?
         {
           flow = m_flowList.front ();
           m_flowList.pop_front ();
           flow->IncreaseDeficit (m_quantum);
           Ptr<const QueueDiscItem> t_item = flow->GetQueueDisc ()->Peek ();
 
-          if( (uint32_t) flow->GetDeficit() >= t_item->GetSize ())
-          {
-            item = flow->GetQueueDisc ()->Dequeue ();
-            flow->IncreaseDeficit (-item->GetSize ());
-            NS_LOG_DEBUG ("Dequeued packet " << item->GetPacket ());
-
-            if(flow->GetQueueDisc ()->GetNPackets () == 0)
+          if ( (uint32_t) flow->GetDeficit () >= t_item->GetSize ())
             {
-              NS_LOG_DEBUG("Empty Flow, Setting it to INACTIVE");
-              flow->SetDeficit(0);
-              flow->SetStatus(DRRFlow::INACTIVE);
-            }
+              item = flow->GetQueueDisc ()->Dequeue ();
+              flow->IncreaseDeficit (-item->GetSize ());
+              NS_LOG_DEBUG ("Dequeued packet " << item->GetPacket ());
 
-            else
-            {
-                NS_LOG_DEBUG("Flow still active, pushing back to active list");
-                m_flowList.push_back(flow);
-            }
+              if (flow->GetQueueDisc ()->GetNPackets () == 0)
+                {
+                  NS_LOG_DEBUG ("Empty Flow, Setting it to INACTIVE");
+                  flow->SetDeficit (0);
+                  flow->SetStatus (DRRFlow::INACTIVE);
+                }
 
-            return item;
-          }			//End if(flow->GetDeficit ...)
+              else
+                {
+                  NS_LOG_DEBUG ("Flow still active, pushing back to active list");
+                  m_flowList.push_back (flow);
+                }
+
+              return item;
+            }                   //End if(flow->GetDeficit ...)
 
           else
-          {
-            NS_LOG_DEBUG("Packet size greater than deficit, pushing flow back to end of list");
-            m_flowList.push_back(flow);
-            item = 0;
-          }
+            {
+              NS_LOG_DEBUG ("Packet size greater than deficit, pushing flow back to end of list");
+              m_flowList.push_back (flow);
+              item = 0;
+            }
         }
       else
-      {
-     	    NS_LOG_DEBUG("No active flows found");
-      	  return 0;
-      }
-    } while (item == 0);
+        {
+          NS_LOG_DEBUG ("No active flows found");
+          return 0;
+        }
+    }
+  while (item == 0);
 
   return 0; //never reached
 }
@@ -287,7 +288,7 @@ DRRQueueDisc::CheckConfig (void)
 
   if (GetNPacketFilters () == 0)
     {
-     // Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
+      // Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
       //AddPacketFilter (ipv4Filter);
       NS_LOG_ERROR ("DRRQueueDisc needs at least a packet filter");
       return false;
@@ -314,7 +315,7 @@ DRRQueueDisc::InitializeParams (void)
       //Ptr<NetDevice> device = GetNetDevice ();
       //NS_ASSERT_MSG (device, "Device not set for the queue disc");
       //m_quantum = device->GetMtu ();
-      m_quantum=600;
+      m_quantum = 600;
       NS_LOG_DEBUG ("Setting the quantum to: " << m_quantum);
     }
 
@@ -324,8 +325,8 @@ DRRQueueDisc::InitializeParams (void)
 
   //m_queueDiscFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_BYTES));
   //m_queueDiscFactory.Set ("MaxPackets", UintegerValue (m_limit + 1));
- // m_queueDiscFactory.Set ("Interval", StringValue (m_interval));
- //m_queueDiscFactory.Set ("Target", StringValue (m_target));
+  // m_queueDiscFactory.Set ("Interval", StringValue (m_interval));
+  //m_queueDiscFactory.Set ("Target", StringValue (m_target));
 }
 
 uint32_t

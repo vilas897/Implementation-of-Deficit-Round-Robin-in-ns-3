@@ -192,7 +192,7 @@ main (int argc, char *argv[])
 
   // DRR params
   NS_LOG_INFO ("Set DRR params");
-  Config::SetDefault ("ns3::DRRQueueDisc::ByteLimit", UintegerValue(100 * 1024));
+  Config::SetDefault ("ns3::DRRQueueDisc::ByteLimit", UintegerValue (100 * 1024));
   Config::SetDefault ("ns3::DRRQueueDisc::Flows", UintegerValue (1024));
 
   NS_LOG_INFO ("Install internet stack on all nodes.");
@@ -205,7 +205,7 @@ main (int argc, char *argv[])
 
   TrafficControlHelper tchDRR;
   tchDRR.SetRootQueueDisc ("ns3::DRRQueueDisc");
-  tchDRR.AddPacketFilter(handle, "ns3::DRRIpv4PacketFilter");
+  tchDRR.AddPacketFilter (handle, "ns3::DRRIpv4PacketFilter");
 
   NS_LOG_INFO ("Create channels");
   PointToPointHelper p2p;

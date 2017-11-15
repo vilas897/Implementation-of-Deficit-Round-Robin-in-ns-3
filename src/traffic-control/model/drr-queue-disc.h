@@ -14,73 +14,73 @@ namespace ns3 {
 * \brief A flow queue used by the DRR queue disc
 */
 
-class DRRFlow : public QueueDiscClass {
+class DRRFlow : public QueueDiscClass
+{
 public:
-
- /**
-  * \brief Get the type ID.
-  * \return the object TypeId
-  */
- static TypeId GetTypeId (void);
-
-
- /**
-  * \brief DRRFlow constructor
-  */
- DRRFlow ();
-
- virtual ~DRRFlow ();
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
 
 
- /**
-  * \enum FlowStatus
-  * \brief Used to determine the status of this flow queue
-  */
- enum FlowStatus
- {
-   INACTIVE,
-   ACTIVE
- };
+  /**
+   * \brief DRRFlow constructor
+   */
+  DRRFlow ();
+
+  virtual ~DRRFlow ();
 
 
- /**
-  * \brief Set the deficit for this flow
-  * \param deficit the deficit for this flow
-  */
- void SetDeficit (uint32_t deficit);
+  /**
+   * \enum FlowStatus
+   * \brief Used to determine the status of this flow queue
+   */
+  enum FlowStatus
+  {
+    INACTIVE,
+    ACTIVE
+  };
 
 
- /**
-  * \brief Get the deficit for this flow
-  * \return the deficit for this flow
-  */
- int32_t GetDeficit (void) const;
+  /**
+   * \brief Set the deficit for this flow
+   * \param deficit the deficit for this flow
+   */
+  void SetDeficit (uint32_t deficit);
 
 
- /**
-  * \brief Increase the deficit for this flow
-  * \param deficit the amount by which the deficit is to be increased
-  */
- void IncreaseDeficit (int32_t deficit);
+  /**
+   * \brief Get the deficit for this flow
+   * \return the deficit for this flow
+   */
+  int32_t GetDeficit (void) const;
 
 
- /**
-  * \brief Set the status for this flow
-  * \param status the status for this flow
-  */
- void SetStatus (FlowStatus status);
+  /**
+   * \brief Increase the deficit for this flow
+   * \param deficit the amount by which the deficit is to be increased
+   */
+  void IncreaseDeficit (int32_t deficit);
 
 
- /**
-  * \brief Get the status of this flow
-  * \return the status of this flow
-  */
- FlowStatus GetStatus (void) const;
+  /**
+   * \brief Set the status for this flow
+   * \param status the status for this flow
+   */
+  void SetStatus (FlowStatus status);
+
+
+  /**
+   * \brief Get the status of this flow
+   * \return the status of this flow
+   */
+  FlowStatus GetStatus (void) const;
 
 
 private:
- uint32_t m_deficit;	//!< the deficit for this flow
- FlowStatus m_status;  //!< the status of this flow
+  uint32_t m_deficit;   //!< the deficit for this flow
+  FlowStatus m_status; //!< the status of this flow
 };
 
 
@@ -90,19 +90,20 @@ private:
 * \brief A DRRpacket queue disc
 */
 
-class DRRQueueDisc : public QueueDisc {
+class DRRQueueDisc : public QueueDisc
+{
 public:
- /**
-  * \brief Get the type ID.
-  * \return the object TypeId
-  */
- static TypeId GetTypeId (void);
- /**
-  * \brief DRRQueueDisc constructor
-  */
-DRRQueueDisc ();
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+  /**
+   * \brief DRRQueueDisc constructor
+   */
+  DRRQueueDisc ();
 
- virtual ~DRRQueueDisc ();
+  virtual ~DRRQueueDisc ();
 
 
   /**
@@ -126,19 +127,19 @@ DRRQueueDisc ();
 
 
 private:
- virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
- virtual Ptr<QueueDiscItem> DoDequeue (void);
- virtual Ptr<const QueueDiscItem> DoPeek (void) const;
- virtual bool CheckConfig (void);
- virtual void InitializeParams (void);
+  virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
+  virtual Ptr<QueueDiscItem> DoDequeue (void);
+  virtual Ptr<const QueueDiscItem> DoPeek (void) const;
+  virtual bool CheckConfig (void);
+  virtual void InitializeParams (void);
 
- /**
-  * \brief Drop a packet from the tail of the queue with the largest current byte count (Packet Stealing)
-  * \return the index of the queue with the largest current byte count
-  */
+  /**
+   * \brief Drop a packet from the tail of the queue with the largest current byte count (Packet Stealing)
+   * \return the index of the queue with the largest current byte count
+   */
   uint32_t DRRDrop (void);
 
-  uint32_t m_packets ;     //!< cumulative sum of packets across all flows
+  uint32_t m_packets;      //!< cumulative sum of packets across all flows
   uint32_t m_limit;              //!< Maximum number of bytes in the queue disc
   uint32_t m_quantum;        //!< total number of bytes that a flow can send
   uint32_t m_flows;          //!< Number of flow queues

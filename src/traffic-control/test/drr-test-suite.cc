@@ -66,9 +66,9 @@ DRRQueueDiscNoSuitableFilter::DoRun (void)
   Ptr<DRRIpv4PacketFilter> filter = CreateObject<DRRIpv4PacketFilter> ();
   queueDisc->AddPacketFilter (filter);
 
-    // test 1: simple enqueue/dequeue with defaults, no drops
+  // test 1: simple enqueue/dequeue with defaults, no drops
   //NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
-       //                  "Verify that we can actually set the attribute Mode");
+  //                  "Verify that we can actually set the attribute Mode");
   queueDisc->SetQuantum (500);
   queueDisc->Initialize ();
 
@@ -135,11 +135,11 @@ DRRQueueDiscIPFlowsSeparationAndByteLimit::DoRun (void)
   queueDisc->SetQuantum (600);
   queueDisc->Initialize ();
 
-   // Dequeue from empty QueueDisc
+  // Dequeue from empty QueueDisc
   Ptr<QueueDiscItem> item;
   item = queueDisc->Dequeue ();
   NS_TEST_EXPECT_MSG_EQ ((item == 0), true, "Veryfying Dequeue on empty queue returns 0");
-  
+
   Ipv4Header hdr;
   hdr.SetPayloadSize (500);
   hdr.SetSource (Ipv4Address ("10.10.1.1"));
@@ -148,7 +148,7 @@ DRRQueueDiscIPFlowsSeparationAndByteLimit::DoRun (void)
 
   // Add three packets from the first flow
 
-  AddPacket (queueDisc, hdr); 
+  AddPacket (queueDisc, hdr);
   AddPacket (queueDisc, hdr);
   AddPacket (queueDisc, hdr);
 
@@ -162,7 +162,7 @@ DRRQueueDiscIPFlowsSeparationAndByteLimit::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the flow queue");
-  // Add the second packet that causes one packet to be dropped from the fat flow 
+  // Add the second packet that causes one packet to be dropped from the fat flow
   AddPacket (queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the flow queue");
@@ -303,7 +303,7 @@ DRRQueueDiscUDPFlowsSeparation::DoRun (void)
   Ptr<DRRQueueDisc> queueDisc = CreateObjectWithAttributes<DRRQueueDisc> ("ByteLimit", UintegerValue (4000));
 //  Ptr<DRRIpv6PacketFilter> ipv6Filter = CreateObject<DRRIpv6PacketFilter> ();
   Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
- // queueDisc->AddPacketFilter (ipv6Filter);
+  // queueDisc->AddPacketFilter (ipv6Filter);
   queueDisc->AddPacketFilter (ipv4Filter);
 
   queueDisc->SetQuantum (600);
@@ -394,7 +394,7 @@ DRRQueueDiscDeficitVariableSizeSameFlow::DoRun (void)
   Ptr<DRRQueueDisc> queueDisc = CreateObjectWithAttributes<DRRQueueDisc> ();
   //Ptr<DRRIpv6PacketFilter> ipv6Filter = CreateObject<DRRIpv6PacketFilter> ();
   Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
- // queueDisc->AddPacketFilter (ipv6Filter);
+  // queueDisc->AddPacketFilter (ipv6Filter);
   queueDisc->AddPacketFilter (ipv4Filter);
 
   queueDisc->SetQuantum (600);
@@ -412,7 +412,7 @@ DRRQueueDiscDeficitVariableSizeSameFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 1, "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the first flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 520, "unexpected number of bytes in the first flow queue");
-   
+
   Ptr<DRRFlow> flow1 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (0));
   //NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), static_cast<int32_t> (queueDisc->GetQuantum ()), "the deficit of the first flow must equal the quantum");
   NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues");
@@ -437,7 +437,7 @@ DRRQueueDiscDeficitVariableSizeSameFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
   // Total bytes = 500 + 20 + 400 + 20 (header is 20 bytes long)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 1560, "unexpected number of bytes in the first flow queue");
-   
+
   flow1 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (0));
   //NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), static_cast<int32_t> (queueDisc->GetQuantum ()), "the deficit of the first flow must equal the quantum");
   NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues");
@@ -449,7 +449,7 @@ DRRQueueDiscDeficitVariableSizeSameFlow::DoRun (void)
   // the deficit for the first flow becomes 600 - (500+20) = 80
   NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 80, "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ (flow1->GetStatus (), DRRFlow::ACTIVE, "the first flow must be in the list of active queues since there is one packet left");
-  
+
   //Dequeue second packet
   queueDisc->Dequeue ();
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 1, "unexpected number of packets in the queue disc");
@@ -508,7 +508,7 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
   Ptr<DRRQueueDisc> queueDisc = CreateObjectWithAttributes<DRRQueueDisc> ();
   //Ptr<DRRIpv6PacketFilter> ipv6Filter = CreateObject<DRRIpv6PacketFilter> ();
   Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
- // queueDisc->AddPacketFilter (ipv6Filter);
+  // queueDisc->AddPacketFilter (ipv6Filter);
   queueDisc->AddPacketFilter (ipv4Filter);
 
   queueDisc->SetQuantum (600);
@@ -522,7 +522,7 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
 
   // Add 2 packet from the first flow
   AddPacket (queueDisc, hdr, 500);
-  hdr.SetPayloadSize (600);  
+  hdr.SetPayloadSize (600);
   AddPacket (queueDisc, hdr, 600);
 
   hdr.SetDestination (Ipv4Address ("10.10.1.3"));
@@ -533,7 +533,7 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the first flow queue");
   // Total bytes = 500 + 20 + 400 + 20 (header is 20 bytes long)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 1140, "unexpected number of bytes in the first flow queue");
-   
+
   Ptr<DRRFlow> flow1 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (0));
   Ptr<DRRFlow> flow2 = StaticCast<DRRFlow> (queueDisc->GetQueueDiscClass (1));
   //NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), static_cast<int32_t> (queueDisc->GetQuantum ()), "the deficit of the first flow must equal the quantum");
@@ -547,7 +547,7 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNBytes (), 620, "unexpected number of bytes in the first flow queue");
   NS_TEST_ASSERT_MSG_EQ (flow1->GetDeficit (), 80, "unexpected deficit for the first flow");
-  
+
   ///Dequeue second packet
   queueDisc->Dequeue ();
   //the deficit for the second flow becomes 600 but packet is not dequeued since size is more than deficit
@@ -559,7 +559,7 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 0, "unexpected number of packets in the first flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
 
-  
+
   //Dequeue third packet
   queueDisc->Dequeue ();
   //Now deficit = 1200 > 800, so packet is dequeued
@@ -585,8 +585,8 @@ DRRQueueDiscTestSuite::DRRQueueDiscTestSuite ()
   AddTestCase (new DRRQueueDiscUDPFlowsSeparation, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscDeficitVariableSizeSameFlow, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscDeficitVariableSizeDifferentFlow, TestCase::QUICK);
- 
-  
+
+
 }
 
 static DRRQueueDiscTestSuite DRRQueueDiscTestSuite;
