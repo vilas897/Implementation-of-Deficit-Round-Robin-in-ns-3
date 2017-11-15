@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2016 Universita' degli Studi di Napoli Federico II
+ * Copyright (c) 2017 NITK Surathkal
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -144,7 +144,7 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   NS_LOG_FUNCTION (this << item);
 
   int32_t ret = Classify (item);
-  uint32_t h
+  uint32_t h;
 
   if (ret == PacketFilter::PF_NO_MATCH)
     {

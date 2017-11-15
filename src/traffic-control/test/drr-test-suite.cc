@@ -79,12 +79,12 @@ DRRQueueDiscNoSuitableFilter::DoRun (void)
   Address dest;
   item = Create<Ipv6QueueDiscItem> (p, dest, 0, ipv6Header);
   queueDisc->Enqueue (item);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetNQueueDiscClasses (), 0, "no flow queue should have been created");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetNQueueDiscClasses (), 1, "One flow queue should have been created");
 
   p = Create<Packet> (reinterpret_cast<const uint8_t*> ("hello, world"), 12);
   item = Create<Ipv6QueueDiscItem> (p, dest, 0, ipv6Header);
   queueDisc->Enqueue (item);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetNQueueDiscClasses (), 0, "no flow queue should have been created");
+  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetNQueueDiscClasses (), 1, "One flow queue should have been created");
 
   Simulator::Destroy ();
 }
