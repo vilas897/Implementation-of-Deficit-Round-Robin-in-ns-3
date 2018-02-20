@@ -1,6 +1,4 @@
-# Reproduce the results of DRR 
-
-This repository contains the source code related to the DRR paper submitted to WNS3-2018.
+# Reproduce the results of DRR in ns-3
 
 ## Steps to reproduce
 
