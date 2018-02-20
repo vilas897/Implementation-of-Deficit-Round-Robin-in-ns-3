@@ -6,14 +6,16 @@
 
 ``git clone https://github.com/vilas897/Implementation-of-Deficit-Round-Robin-in-ns-3``
 
-* Step 2: Configure and build the cloned repo:
+* Step 2: Enter the ns-3 directory
+
+* Step 3: Configure and build the cloned repo:
 
 ```
 ./waf configure
 ./waf
 ```
 
-* Step 3: Run DRR examples available under ``scratch`` directory:
+* Step 4: Run DRR examples available under ``scratch`` directory:
 
 ```
 ./waf --run scratch/first-bulksend
