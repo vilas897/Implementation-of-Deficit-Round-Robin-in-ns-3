@@ -155,7 +155,7 @@ typedef uint8_t WifiInformationElementId;
 #define IE_MCCAOP_SETUP_REQUEST                 ((WifiInformationElementId)121)
 #define IE_MCCAOP_SETUP_REPLY                   ((WifiInformationElementId)122)
 #define IE_MCCAOP_ADVERTISEMENT                 ((WifiInformationElementId)123)
-#define IE_MCCAOP TEARDOWN                      ((WifiInformationElementId)124)
+#define IE_MCCAOP_TEARDOWN                      ((WifiInformationElementId)124)
 #define IE_GANN                                 ((WifiInformationElementId)125)
 #define IE_RANN                                 ((WifiInformationElementId)126)
 // 67 to 126 are reserved
@@ -187,6 +187,7 @@ typedef uint8_t WifiInformationElementId;
 #define IE_VENDOR_SPECIFIC                      ((WifiInformationElementId)221)
 // 222 to 255 are reserved
 #define IE_HE_CAPABILITIES                      ((WifiInformationElementId)255) //todo: not defined yet in the standard!
+#define IE_HE_OPERATION                         ((WifiInformationElementId)255) //todo: not defined yet in the standard!
 
 
 /**

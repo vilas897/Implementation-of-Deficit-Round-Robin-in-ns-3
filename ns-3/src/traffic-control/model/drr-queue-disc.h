@@ -92,7 +92,6 @@ public:
    */
   void SetStatus (FlowStatus status);
 
-
   /**
    * \brief Get the status of this flow
    * \return the status of this flow
@@ -111,7 +110,6 @@ private:
 *
 * \brief A DRRpacket queue disc
 */
-
 class DRRQueueDisc : public QueueDisc
 {
 public:
@@ -151,7 +149,7 @@ public:
 private:
   virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
   virtual Ptr<QueueDiscItem> DoDequeue (void);
-  virtual Ptr<const QueueDiscItem> DoPeek (void) const;
+  virtual Ptr<const QueueDiscItem> DoPeek (void);
   virtual bool CheckConfig (void);
   virtual void InitializeParams (void);
 
@@ -161,10 +159,11 @@ private:
    */
   uint32_t DRRDrop (void);
 
-  uint32_t m_packets;      //!< cumulative sum of packets across all flows
-  uint32_t m_limit;              //!< Maximum number of bytes in the queue disc
-  uint32_t m_quantum;        //!< total number of bytes that a flow can send
-  uint32_t m_flows;          //!< Number of flow queues
+  uint32_t m_limit;          //!< Maximum number of bytes in the queue disc
+  uint32_t m_quantum;        //!< total number of bytes that a flow can send at once
+  uint32_t m_flows;          //!< Number of flows
+  uint32_t m_flowLimit;      //!< Maximum number of packets allowed in each flow
+  uint32_t m_meanPktSize;    //!< Mean packet size
 
 
   std::list<Ptr<DRRFlow> > m_flowList;    //!< The list of flows

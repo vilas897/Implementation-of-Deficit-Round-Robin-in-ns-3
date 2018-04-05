@@ -377,7 +377,7 @@ public:
    *
    * \return the number of basic modes we support
    */
-  uint32_t GetNBasicModes (void) const;
+  uint8_t GetNBasicModes (void) const;
   /**
    * Return a basic mode from the set of basic modes.
    *
@@ -385,7 +385,7 @@ public:
    *
    * \return the basic mode at the given index
    */
-  WifiMode GetBasicMode (uint32_t i) const;
+  WifiMode GetBasicMode (uint8_t i) const;
   /**
    * Return the number of non-ERP basic modes we support.
    *
@@ -399,7 +399,7 @@ public:
    *
    * \return the basic mode at the given index
    */
-  WifiMode GetNonErpBasicMode (uint32_t i) const;
+  WifiMode GetNonErpBasicMode (uint8_t i) const;
   /**
    * Return whether the station supports Greenfield or not.
    *
@@ -454,7 +454,7 @@ public:
    *
    * \return the number of basic MCS index
    */
-  uint32_t GetNBasicMcs (void) const;
+  uint8_t GetNBasicMcs (void) const;
   /**
    * Return the MCS at the given <i>list</i> index.
    *
@@ -462,7 +462,7 @@ public:
    *
    * \return the basic mcs at the given list index
    */
-  WifiMode GetBasicMcs (uint32_t i) const;
+  WifiMode GetBasicMcs (uint8_t i) const;
   /**
    * Record the MCS index supported by the station.
    *
@@ -481,7 +481,7 @@ public:
   /**
    * Return whether the station supports HT/VHT short guard interval.
    *
-   * \param station the station being queried
+   * \param address the address of the station
    *
    * \return true if the station supports HT/VHT short guard interval,
    *         false otherwise
@@ -920,7 +920,7 @@ protected:
    *
    * \return WifiMode at the given index of the specified station
    */
-  WifiMode GetSupported (const WifiRemoteStation *station, uint32_t i) const;
+  WifiMode GetSupported (const WifiRemoteStation *station, uint8_t i) const;
   /**
    * Return the number of modes supported by the given station.
    *
@@ -928,7 +928,7 @@ protected:
    *
    * \return the number of modes supported by the given station
    */
-  uint32_t GetNSupported (const WifiRemoteStation *station) const;
+  uint8_t GetNSupported (const WifiRemoteStation *station) const;
   /**
    * Return whether the given station is QoS capable.
    *
@@ -974,7 +974,7 @@ protected:
    * \return the WifiMode at the given index of the specified station
    */
 
-  WifiMode GetMcsSupported (const WifiRemoteStation *station, uint32_t i) const;
+  WifiMode GetMcsSupported (const WifiRemoteStation *station, uint8_t i) const;
   /**
    * Return the number of MCS supported by the given station.
    *
@@ -991,7 +991,7 @@ protected:
    *
    * \return WifiMode at the given index of the specified station
    */
-  WifiMode GetNonErpSupported (const WifiRemoteStation *station, uint32_t i) const;
+  WifiMode GetNonErpSupported (const WifiRemoteStation *station, uint8_t i) const;
   /**
    * Return the number of non-ERP modes supported by the given station.
    *
@@ -1069,22 +1069,6 @@ protected:
    */
   uint32_t GetNess (const WifiRemoteStation *station) const;
   /**
-   * Return the long retry limit of the given station.
-   *
-   * \param station the station being queried
-   *
-   * \return the long retry limit of the the station
-   */
-  uint32_t GetLongRetryCount (const WifiRemoteStation *station) const;
-  /**
-   * Return the short retry limit of the given station.
-   *
-   * \param station the station being queried
-   *
-   * \return the short retry limit of the the station
-   */
-  uint32_t GetShortRetryCount (const WifiRemoteStation *station) const;
-  /**
    * Return the preamble to be used for the transmission.
    *
    * \param mode the mode selected for the transmission
@@ -1093,6 +1077,16 @@ protected:
    * \return the preamble to be used for the transmission
    */
   WifiPreamble GetPreambleForTransmission (WifiMode mode, Mac48Address dest);
+  /**
+   * Return the channel width that corresponds to the selected mode (instead of
+   * letting the PHY's default channel width). This is especially useful when using
+   * non-HT modes with HT/VHT/HE capable stations (with default width above 20 MHz).
+   *
+   * \param mode selected WifiMode
+   * \param maxSupportedChannelWidth maximum channel width supported by the PHY layer
+   * \return channel width adapted to the selected mode
+   */
+  static uint8_t GetChannelWidthForTransmission (WifiMode mode, uint8_t maxSupportedChannelWidth);
 
   /**
    * Return the WifiPhy.

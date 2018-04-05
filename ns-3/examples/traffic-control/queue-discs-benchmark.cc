@@ -112,7 +112,7 @@ int main (int argc, char *argv[])
   CommandLine cmd;
   cmd.AddValue ("bandwidth", "Bottleneck bandwidth", bandwidth);
   cmd.AddValue ("delay", "Bottleneck delay", delay);
-  cmd.AddValue ("queueDiscType", "Bottleneck queue disc type in {PfifoFast, ARED, CoDel, FqCoDel, PIE}", queueDiscType);
+  cmd.AddValue ("queueDiscType", "Bottleneck queue disc type in {PfifoFast, ARED, CoDel, FqCoDel, PIE, SFQ}", queueDiscType);
   cmd.AddValue ("queueDiscSize", "Bottleneck queue disc size in packets", queueDiscSize);
   cmd.AddValue ("netdevicesQueueSize", "Bottleneck netdevices queue size in packets", netdevicesQueueSize);
   cmd.AddValue ("bql", "Enable byte queue limits on bottleneck netdevices", bql);
@@ -145,40 +145,49 @@ int main (int argc, char *argv[])
 
   // Access link traffic control configuration
   TrafficControlHelper tchPfifoFastAccess;
-  tchPfifoFastAccess.SetRootQueueDisc ("ns3::PfifoFastQueueDisc", "Limit", UintegerValue (1000));
+  tchPfifoFastAccess.SetRootQueueDisc ("ns3::PfifoFastQueueDisc", "MaxSize", StringValue ("1000p"));
 
   // Bottleneck link traffic control configuration
   TrafficControlHelper tchBottleneck;
 
   if (queueDiscType.compare ("PfifoFast") == 0)
     {
-      tchBottleneck.SetRootQueueDisc ("ns3::PfifoFastQueueDisc", "Limit", UintegerValue (queueDiscSize));
+      tchBottleneck.SetRootQueueDisc ("ns3::PfifoFastQueueDisc", "MaxSize",
+                                      QueueSizeValue (QueueSize (QueueSizeUnit::PACKETS, queueDiscSize)));
     }
   else if (queueDiscType.compare ("ARED") == 0)
     {
       tchBottleneck.SetRootQueueDisc ("ns3::RedQueueDisc");
       Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
-      Config::SetDefault ("ns3::RedQueueDisc::Mode", EnumValue (RedQueueDisc::QUEUE_DISC_MODE_PACKETS));
-      Config::SetDefault ("ns3::RedQueueDisc::QueueLimit", UintegerValue (queueDiscSize));
+      Config::SetDefault ("ns3::RedQueueDisc::MaxSize",
+                          QueueSizeValue (QueueSize (QueueSizeUnit::PACKETS, queueDiscSize)));
     }
   else if (queueDiscType.compare ("CoDel") == 0)
     {
       tchBottleneck.SetRootQueueDisc ("ns3::CoDelQueueDisc");
-      Config::SetDefault ("ns3::CoDelQueueDisc::Mode", EnumValue (CoDelQueueDisc::QUEUE_DISC_MODE_PACKETS));
-      Config::SetDefault ("ns3::CoDelQueueDisc::MaxPackets", UintegerValue (queueDiscSize));
+      Config::SetDefault ("ns3::CoDelQueueDisc::MaxSize",
+                          QueueSizeValue (QueueSize (QueueSizeUnit::PACKETS, queueDiscSize)));
     }
   else if (queueDiscType.compare ("FqCoDel") == 0)
     {
       uint32_t handle = tchBottleneck.SetRootQueueDisc ("ns3::FqCoDelQueueDisc");
-      Config::SetDefault ("ns3::FqCoDelQueueDisc::PacketLimit", UintegerValue (queueDiscSize));
+      Config::SetDefault ("ns3::FqCoDelQueueDisc::MaxSize",
+                          QueueSizeValue (QueueSize (QueueSizeUnit::PACKETS, queueDiscSize)));
       tchBottleneck.AddPacketFilter (handle, "ns3::FqCoDelIpv4PacketFilter");
       tchBottleneck.AddPacketFilter (handle, "ns3::FqCoDelIpv6PacketFilter");
     }
   else if (queueDiscType.compare ("PIE") == 0)
     {
       tchBottleneck.SetRootQueueDisc ("ns3::PieQueueDisc");
-      Config::SetDefault ("ns3::PieQueueDisc::Mode", EnumValue (PieQueueDisc::QUEUE_DISC_MODE_PACKETS));
-      Config::SetDefault ("ns3::PieQueueDisc::QueueLimit", UintegerValue (queueDiscSize));
+      Config::SetDefault ("ns3::PieQueueDisc::MaxSize",
+                          QueueSizeValue (QueueSize (QueueSizeUnit::PACKETS, queueDiscSize)));
+    }
+  else if (queueDiscType.compare ("SFQ") == 0)
+    {
+      uint32_t handle = tchBottleneck.SetRootQueueDisc ("ns3::SfqQueueDisc");
+      Config::SetDefault ("ns3::SfqQueueDisc::PacketLimit", UintegerValue (queueDiscSize));
+      tchBottleneck.AddPacketFilter (handle, "ns3::SfqIpv4PacketFilter");
+      tchBottleneck.AddPacketFilter (handle, "ns3::SfqIpv6PacketFilter");
     }
   else
     {
@@ -190,8 +199,7 @@ int main (int argc, char *argv[])
       tchBottleneck.SetQueueLimits ("ns3::DynamicQueueLimits");
     }
 
-  Config::SetDefault ("ns3::QueueBase::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-  Config::SetDefault ("ns3::QueueBase::MaxPackets", UintegerValue (100));
+  Config::SetDefault ("ns3::QueueBase::MaxSize", StringValue ("100p"));
 
   NetDeviceContainer devicesAccessLink = accessLink.Install (n1.Get (0), n2.Get (0));
   tchPfifoFastAccess.Install (devicesAccessLink);
@@ -200,7 +208,7 @@ int main (int argc, char *argv[])
   address.NewNetwork ();
   Ipv4InterfaceContainer interfacesAccess = address.Assign (devicesAccessLink);
 
-  Config::SetDefault ("ns3::QueueBase::MaxPackets", UintegerValue (netdevicesQueueSize));
+  Config::SetDefault ("ns3::QueueBase::MaxSize", StringValue (std::to_string (netdevicesQueueSize) + "p"));
 
   NetDeviceContainer devicesBottleneckLink = bottleneckLink.Install (n2.Get (0), n3.Get (0));
   QueueDiscContainer qdiscs;
