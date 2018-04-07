@@ -26,6 +26,10 @@
 
 #include "ns3/object.h"
 #include "ns3/packet-filter.h"
+#include "ns3/timer.h"
+#include "ns3/event-id.h"
+#include "ns3/random-variable-stream.h"
+#include "ns3/simulator.h"
 
 namespace ns3 {
 
@@ -93,6 +97,56 @@ public:
 
   DRRIpv6PacketFilter ();
   virtual ~DRRIpv6PacketFilter ();
+
+private:
+  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
+
+};
+
+/**
+ * \ingroup internet
+ *
+ * SfqIpv6PacketFilter is the filter to be added to the SFQ
+ * queue disc to simulate the behavior of the sfq Linux queue disc.
+ *
+ */
+class SfqIpv6PacketFilter : public Ipv6PacketFilter {
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  SfqIpv6PacketFilter ();
+  virtual ~SfqIpv6PacketFilter ();
+
+private:
+  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
+  virtual void PerturbHash ();
+
+  uint32_t m_perturbation;                 //!< hash perturbation value
+  Time m_perturbTime = MilliSeconds (100); //!< interval after which perturbation takes place
+  Ptr<UniformRandomVariable> rand;         //!< random number generator for perturbation
+};
+
+/**
+ * \ingroup internet
+ *
+ * SfqNs2Ipv6PacketFilter is the filter to be added to the SFQ
+ * queue disc to simulate the behavior of the sfq ns-2 queue disc.
+ *
+ */
+class SfqNs2Ipv6PacketFilter : public Ipv6PacketFilter {
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  SfqNs2Ipv6PacketFilter ();
+  virtual ~SfqNs2Ipv6PacketFilter ();
 
 private:
   virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;

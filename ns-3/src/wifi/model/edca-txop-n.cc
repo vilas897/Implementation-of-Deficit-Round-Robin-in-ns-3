@@ -50,11 +50,11 @@ EdcaTxopN::GetTypeId (void)
     .AddTraceSource ("BackoffTrace",
                      "Trace source for backoff values",
                      MakeTraceSourceAccessor (&EdcaTxopN::m_backoffTrace),
-                     "ns3::TracedValue::Uint32Callback")
+                     "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("CwTrace",
                      "Trace source for contention window values",
                      MakeTraceSourceAccessor (&EdcaTxopN::m_cwTrace),
-                     "ns3::TracedValue::Uint32Callback")
+                     "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("TxopTrace",
                      "Trace source for txop start and duration times",
                      MakeTraceSourceAccessor (&EdcaTxopN::m_txopTrace),
@@ -123,7 +123,7 @@ EdcaTxopN::SetWifiRemoteStationManager (const Ptr<WifiRemoteStationManager> remo
 void
 EdcaTxopN::SetTypeOfStation (TypeOfStation type)
 {
-  NS_LOG_FUNCTION (this << (uint16_t)type);
+  NS_LOG_FUNCTION (this << +type);
   m_typeOfStation = type;
 }
 
@@ -145,9 +145,9 @@ uint16_t EdcaTxopN::PeekNextSequenceNumberFor (WifiMacHeader *hdr)
 }
 
 Ptr<const Packet>
-EdcaTxopN::PeekNextRetransmitPacket (WifiMacHeader &header,Mac48Address recipient, uint8_t tid, Time *timestamp)
+EdcaTxopN::PeekNextRetransmitPacket (WifiMacHeader &header, Mac48Address recipient, uint8_t tid, Time *timestamp)
 {
-  return m_baManager->PeekNextPacketByTidAndAddress (header,recipient,tid, timestamp);
+  return m_baManager->PeekNextPacketByTidAndAddress (header, recipient, tid, timestamp);
 }
 
 void
@@ -220,8 +220,8 @@ EdcaTxopN::NotifyAccessGranted (void)
       m_currentParams.DisableRts ();
       m_currentParams.DisableAck ();
       m_currentParams.DisableNextData ();
-      m_low->StartTransmission (m_currentPacket, &m_currentHdr, m_currentParams, this);
       NS_LOG_DEBUG ("tx broadcast");
+      m_low->StartTransmission (m_currentPacket, &m_currentHdr, m_currentParams, this);
     }
   else if (m_currentHdr.GetType () == WIFI_MAC_CTL_BACKREQ)
     {
@@ -613,7 +613,7 @@ EdcaTxopN::MissedAck (void)
 void
 EdcaTxopN::MissedBlockAck (uint8_t nMpdus)
 {
-  NS_LOG_FUNCTION (this << (uint16_t)nMpdus);
+  NS_LOG_FUNCTION (this << +nMpdus);
   uint8_t tid = GetTid (m_currentPacket, m_currentHdr);
   if (GetAmpduExist (m_currentHdr.GetAddr1 ()))
     {
@@ -747,12 +747,7 @@ EdcaTxopN::StartAccessIfNeeded (void)
     {
       Ptr<const Packet> packet;
       WifiMacHeader hdr;
-      if (m_currentPacket != 0)
-        {
-          packet = m_currentPacket;
-          hdr = m_currentHdr;
-        }
-      else if (m_baManager->HasPackets ())
+      if (m_baManager->HasPackets ())
         {
           packet = m_baManager->GetNextPacket (hdr, false);
         }
@@ -1162,7 +1157,7 @@ EdcaTxopN::GetFragmentPacket (WifiMacHeader *hdr)
 void
 EdcaTxopN::SetAccessCategory (AcIndex ac)
 {
-  NS_LOG_FUNCTION (this << (uint16_t)ac);
+  NS_LOG_FUNCTION (this << +ac);
   m_ac = ac;
 }
 
@@ -1418,7 +1413,7 @@ EdcaTxopN::CompleteConfig (void)
 void
 EdcaTxopN::SetBlockAckThreshold (uint8_t threshold)
 {
-  NS_LOG_FUNCTION (this << (uint16_t)threshold);
+  NS_LOG_FUNCTION (this << +threshold);
   m_blockAckThreshold = threshold;
   m_baManager->SetBlockAckThreshold (threshold);
 }
@@ -1441,7 +1436,7 @@ void
 EdcaTxopN::SendAddBaRequest (Mac48Address dest, uint8_t tid, uint16_t startSeq,
                              uint16_t timeout, bool immediateBAck)
 {
-  NS_LOG_FUNCTION (this << dest << (uint16_t)tid << startSeq << timeout << immediateBAck);
+  NS_LOG_FUNCTION (this << dest << +tid << startSeq << timeout << immediateBAck);
   NS_LOG_DEBUG ("sent ADDBA request to " << dest);
   WifiMacHeader hdr;
   hdr.SetType (WIFI_MAC_MGT_ACTION);
@@ -1501,7 +1496,7 @@ EdcaTxopN::SendAddBaRequest (Mac48Address dest, uint8_t tid, uint16_t startSeq,
 void
 EdcaTxopN::SendDelbaFrame (Mac48Address addr, uint8_t tid, bool byOriginator)
 {
-  NS_LOG_FUNCTION (this << addr << (uint16_t)tid << byOriginator);
+  NS_LOG_FUNCTION (this << addr << +tid << byOriginator);
   WifiMacHeader hdr;
   hdr.SetType (WIFI_MAC_MGT_ACTION);
   hdr.SetAddr1 (addr);
@@ -1515,10 +1510,12 @@ EdcaTxopN::SendDelbaFrame (Mac48Address addr, uint8_t tid, bool byOriginator)
   if (byOriginator)
     {
       delbaHdr.SetByOriginator ();
+      m_baManager->DestroyAgreement (addr, tid);
     }
   else
     {
       delbaHdr.SetByRecipient ();
+      m_low->DestroyBlockAckAgreement (addr, tid);
     }
 
   WifiActionHeader actionHdr;

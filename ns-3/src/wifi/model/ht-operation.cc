@@ -51,7 +51,7 @@ HtOperation::HtOperation ()
     m_reservedMcsSet3 (0),
     m_htSupported (0)
 {
-  for (uint32_t k = 0; k < MAX_SUPPORTED_MCS; k++)
+  for (uint8_t k = 0; k < MAX_SUPPORTED_MCS; k++)
     {
       m_rxMcsBitmask[k] = 0;
     }
@@ -332,7 +332,7 @@ HtOperation::GetSerializedSize () const
 uint8_t
 HtOperation::GetInformationSubset1 (void) const
 {
-  uint16_t val = 0;
+  uint8_t val = 0;
   val |= m_secondaryChannelOffset & 0x03;
   val |= (m_staChannelWidth & 0x01) << 2;
   val |= (m_rifsMode & 0x01) << 3;
@@ -368,7 +368,7 @@ HtOperation::SetInformationSubset2 (uint16_t ctrl)
   m_nonGfHtStasPresent = (ctrl >> 2) & 0x01;
   m_reservedInformationSubset2_1 = (ctrl >> 3) & 0x01;
   m_obssNonHtStasPresent = (ctrl >> 4) & 0x01;
-  m_reservedInformationSubset2_1 = (ctrl >> 5) & 0x07ff;
+  m_reservedInformationSubset2_1 = static_cast<uint8_t>((ctrl >> 5) & 0x07ff);
 }
 
 uint16_t
@@ -477,8 +477,8 @@ HtOperation::DeserializeInformationField (Buffer::Iterator start,
   Buffer::Iterator i = start;
   uint8_t primarychannel = i.ReadU8 ();
   uint8_t informationsubset1 = i.ReadU8 ();
-  uint8_t informationsubset2 = i.ReadU16 ();
-  uint8_t informationsubset3 = i.ReadU16 ();
+  uint16_t informationsubset2 = i.ReadU16 ();
+  uint16_t informationsubset3 = i.ReadU16 ();
   uint64_t mcsset1 = i.ReadLsbtohU64 ();
   uint64_t mcsset2 = i.ReadLsbtohU64 ();
   SetPrimaryChannel (primarychannel);
@@ -496,7 +496,7 @@ ATTRIBUTE_HELPER_CPP (HtOperation);
  * output stream output operator
  *
  * \param os output stream
- * \param htOperation
+ * \param htOperation the HT operation
  *
  * \returns output stream
  */
@@ -514,7 +514,7 @@ operator << (std::ostream &os, const HtOperation &htOperation)
  * input stream input operator
  *
  * \param is input stream
- * \param htOperation
+ * \param htOperation the HT operation
  *
  * \returns input stream
  */

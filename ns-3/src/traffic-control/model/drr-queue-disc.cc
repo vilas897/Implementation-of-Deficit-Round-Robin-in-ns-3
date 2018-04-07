@@ -22,11 +22,11 @@
 
 #include "ns3/log.h"
 #include "ns3/string.h"
-#include "ns3/queue.h"
 #include "drr-queue-disc.h"
 #include "ns3/net-device-queue-interface.h"
 #include "ns3/ipv4-packet-filter.h"
-#include "codel-queue-disc.h"
+#include "ns3/ipv6-packet-filter.h"
+#include "fifo-queue-disc.h"
 
 namespace ns3 {
 
@@ -100,15 +100,26 @@ TypeId DRRQueueDisc::GetTypeId (void)
     .SetParent<QueueDisc> ()
     .SetGroupName ("TrafficControl")
     .AddConstructor<DRRQueueDisc> ()
-    .AddAttribute ("ByteLimit",
-                   "The hard limit on the real queue size, measured in bytes",
-                   UintegerValue (1000 * 1024),
-                   MakeUintegerAccessor (&DRRQueueDisc::m_limit),
+    .AddAttribute ("MaxSize",
+                   "The maximum number of packets accepted by this queue disc",
+                   QueueSizeValue (QueueSize ("102400p")),
+                   MakeQueueSizeAccessor (&QueueDisc::SetMaxSize,
+                                          &QueueDisc::GetMaxSize),
+                   MakeQueueSizeChecker ())
+    .AddAttribute ("MeanPktSize",
+                   "Mean packet size during transmission",
+                   UintegerValue (1500),
+                   MakeUintegerAccessor (&DRRQueueDisc::m_meanPktSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Flows",
                    "The number of queues into which the incoming packets are classified",
                    UintegerValue (1024),
                    MakeUintegerAccessor (&DRRQueueDisc::m_flows),
+                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("FlowLimit",
+                   "The maximum number of packets each flow can have",
+                   UintegerValue (100),
+                   MakeUintegerAccessor (&DRRQueueDisc::m_flowLimit),
                    MakeUintegerChecker<uint32_t> ())
   ;
   return tid;
@@ -151,7 +162,6 @@ DRRQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
       NS_LOG_WARN ("No filter has been able to classify this packet.");
       h = m_flows; // place all unfiltered packets into a separate flow queue
     }
-
   else
     {
       h = ret % m_flows;
@@ -210,7 +220,7 @@ DRRQueueDisc::DoDequeue (void)
 
   do
     {
-      if (!m_flowList.empty ())   // unnecessary ?
+      if (!m_flowList.empty ())   
         {
           flow = m_flowList.front ();
           m_flowList.pop_front ();
@@ -229,7 +239,6 @@ DRRQueueDisc::DoDequeue (void)
                   flow->SetDeficit (0);
                   flow->SetStatus (DRRFlow::INACTIVE);
                 }
-
               else
                 {
                   NS_LOG_DEBUG ("Flow still active, pushing back to active list");
@@ -237,8 +246,7 @@ DRRQueueDisc::DoDequeue (void)
                 }
 
               return item;
-            }                   //End if(flow->GetDeficit ...)
-
+            }
           else
             {
               NS_LOG_DEBUG ("Packet size greater than deficit, pushing flow back to end of list");
@@ -258,7 +266,7 @@ DRRQueueDisc::DoDequeue (void)
 }
 
 Ptr<const QueueDiscItem>
-DRRQueueDisc::DoPeek (void) const
+DRRQueueDisc::DoPeek (void)
 {
   NS_LOG_FUNCTION (this);
 
@@ -288,8 +296,6 @@ DRRQueueDisc::CheckConfig (void)
 
   if (GetNPacketFilters () == 0)
     {
-      // Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
-      //AddPacketFilter (ipv4Filter);
       NS_LOG_ERROR ("DRRQueueDisc needs at least a packet filter");
       return false;
     }
@@ -312,21 +318,23 @@ DRRQueueDisc::InitializeParams (void)
   // set the quantum to the MTU of the device
   if (!m_quantum)
     {
-      //Ptr<NetDevice> device = GetNetDevice ();
-      //NS_ASSERT_MSG (device, "Device not set for the queue disc");
-      //m_quantum = device->GetMtu ();
-      m_quantum = 600;
-      NS_LOG_DEBUG ("Setting the quantum to: " << m_quantum);
+      Ptr<NetDevice> device = GetNetDevice ();
+      NS_ASSERT_MSG (device, "Device not set for the queue disc");
+      m_quantum = device->GetMtu ();
+      NS_LOG_DEBUG ("Setting the quantum to the MTU of the device: " << m_quantum);
     }
 
+  if (m_flows == 0 || GetMaxSize ().GetValue () == 0)
+    {
+      m_flows = 16;
+      SetMaxSize (QueueSize ("160p"));
+    }
+
+  
+  m_limit = GetMaxSize ().GetValue () * m_meanPktSize;
   m_flowFactory.SetTypeId ("ns3::DRRFlow");
-
-  m_queueDiscFactory.SetTypeId ("ns3::CoDelQueueDisc");
-
-  //m_queueDiscFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_BYTES));
-  //m_queueDiscFactory.Set ("MaxPackets", UintegerValue (m_limit + 1));
-  // m_queueDiscFactory.Set ("Interval", StringValue (m_interval));
-  //m_queueDiscFactory.Set ("Target", StringValue (m_target));
+  m_queueDiscFactory.SetTypeId ("ns3::FifoQueueDisc");
+  m_queueDiscFactory.Set ("MaxSize", QueueSizeValue (QueueSize (QueueSizeUnit::BYTES, m_flowLimit * m_meanPktSize)));
 }
 
 uint32_t
