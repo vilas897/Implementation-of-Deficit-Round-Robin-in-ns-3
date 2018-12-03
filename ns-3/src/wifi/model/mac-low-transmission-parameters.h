@@ -23,7 +23,6 @@
 #ifndef MAC_LOW_TRANSMISSION_PARAMETERS_H
 #define MAC_LOW_TRANSMISSION_PARAMETERS_H
 
-#include "ns3/nstime.h"
 #include "ns3/uinteger.h"
 
 namespace ns3 {
@@ -48,27 +47,6 @@ public:
    */
   void EnableAck (void);
   /**
-   *   - wait PIFS after end-of-tx. If idle, call
-   *     MacLowTransmissionListener::MissedAck.
-   *   - if busy at end-of-tx+PIFS, wait end-of-rx
-   *   - if Ack ok at end-of-rx, call
-   *     MacLowTransmissionListener::GotAck.
-   *   - if Ack not ok at end-of-rx, report call
-   *     MacLowTransmissionListener::MissedAck
-   *     at end-of-rx+SIFS.
-   *
-   * This is really complicated but it is needed for
-   * proper HCCA support.
-   */
-  void EnableFastAck (void);
-  /**
-   *  - if busy at end-of-tx+PIFS, call
-   *    MacLowTransmissionListener::GotAck
-   *  - if idle at end-of-tx+PIFS, call
-   *    MacLowTransmissionListener::MissedAck
-   */
-  void EnableSuperFastAck (void);
-  /**
    * Wait BASICBLOCKACKTimeout for a Basic Block Ack Response frame.
    */
   void EnableBasicBlockAck (void);
@@ -76,6 +54,10 @@ public:
    * Wait COMPRESSEDBLOCKACKTimeout for a Compressed Block Ack Response frame.
    */
   void EnableCompressedBlockAck (void);
+  /**
+   * Wait COMPRESSEDBLOCKACKTimeout for an Extended Compressed Block Ack Response frame.
+   */
+  void EnableExtendedCompressedBlockAck (void);
   /**
    * NOT IMPLEMENTED FOR NOW
    */
@@ -111,34 +93,12 @@ public:
    */
   void DisableNextData (void);
   /**
-   * \returns true if must wait for ACK after data transmission,
-   *          false otherwise.
-   *
-   * This methods returns true when any of MustWaitNormalAck,
-   * MustWaitFastAck, or MustWaitSuperFastAck return true.
-   */
-  bool MustWaitAck (void) const;
-  /**
    * \returns true if normal ACK protocol should be used, false
    *          otherwise.
    *
    * \sa EnableAck
    */
   bool MustWaitNormalAck (void) const;
-  /**
-   * \returns true if fast ack protocol should be used, false
-   *          otherwise.
-   *
-   * \sa EnableFastAck
-   */
-  bool MustWaitFastAck (void) const;
-  /**
-   * \returns true if super fast ack protocol should be used, false
-   *          otherwise.
-   *
-   * \sa EnableSuperFastAck
-   */
-  bool MustWaitSuperFastAck (void) const;
   /**
    * \returns true if block ack mechanism is used, false otherwise.
    *
@@ -151,6 +111,12 @@ public:
    * \sa EnableCompressedBlockAck
    */
   bool MustWaitCompressedBlockAck (void) const;
+  /**
+   * \returns true if extended compressed block ack mechanism is used, false otherwise.
+   *
+   * \sa EnableExtendedCompressedBlockAck
+   */
+  bool MustWaitExtendedCompressedBlockAck (void) const;
   /**
    * \returns true if multi-tid block ack mechanism is used, false otherwise.
    *
@@ -179,10 +145,9 @@ private:
   {
     ACK_NONE,
     ACK_NORMAL,
-    ACK_FAST,
-    ACK_SUPER_FAST,
     BLOCK_ACK_BASIC,
     BLOCK_ACK_COMPRESSED,
+    EXTENDED_BLOCK_ACK_COMPRESSED,
     BLOCK_ACK_MULTI_TID
   } m_waitAck; //!< wait ack
   bool m_sendRts; //!< send an RTS?

@@ -585,7 +585,6 @@ LteEnbMac::DoSubframeIndication (uint32_t frameNo, uint32_t subframeNo)
 
   // --- UPLINK ---
   // Send UL-CQI info to the scheduler
-  std::vector <FfMacSchedSapProvider::SchedUlCqiInfoReqParameters>::iterator itCqi;
   for (uint16_t i = 0; i < m_ulCqiReceived.size (); i++)
     {
       if (subframeNo > 1)
@@ -766,10 +765,15 @@ LteEnbMac::DoReceivePhyPdu (Ptr<Packet> p)
   std::map<uint8_t, LteMacSapUser*>::iterator lcidIt = rntiIt->second.find (lcid);
   //NS_ASSERT_MSG (lcidIt != rntiIt->second.end (), "could not find LCID" << lcid);
 
+  LteMacSapUser::ReceivePduParameters rxPduParams;
+  rxPduParams.p = p;
+  rxPduParams.rnti = rnti;
+  rxPduParams.lcid = lcid;
+
   //Receive PDU only if LCID is found
   if (lcidIt != rntiIt->second.end ())
     {
-      (*lcidIt).second->ReceivePdu (p, rnti, lcid);
+      (*lcidIt).second->ReceivePdu (rxPduParams);
     }
 }
 
@@ -809,7 +813,7 @@ LteEnbMac::DoAddUe (uint16_t rnti)
 
   m_cschedSapProvider->CschedUeConfigReq (params);
 
-  // Create DL trasmission HARQ buffers
+  // Create DL transmission HARQ buffers
   std::vector < Ptr<PacketBurst> > dlHarqLayer0pkt;
   dlHarqLayer0pkt.resize (8);
   for (uint8_t i = 0; i < 8; i++)
@@ -1024,6 +1028,7 @@ LteEnbMac::DoSchedDlConfigInd (FfMacSchedSapUser::SchedDlConfigIndParameters ind
   // Create DL PHY PDU
   Ptr<PacketBurst> pb = CreateObject<PacketBurst> ();
   std::map <LteFlowId_t, LteMacSapUser* >::iterator it;
+  LteMacSapUser::TxOpportunityParameters txOpParams;
 
   for (unsigned int i = 0; i < ind.m_buildDataList.size (); i++)
     {
@@ -1055,7 +1060,13 @@ LteEnbMac::DoSchedDlConfigInd (FfMacSchedSapUser::SchedDlConfigIndParameters ind
                   std::map<uint8_t, LteMacSapUser*>::iterator lcidIt = rntiIt->second.find (lcid);
                   NS_ASSERT_MSG (lcidIt != rntiIt->second.end (), "could not find LCID" << (uint32_t)lcid<<" carrier id:"<<(uint16_t)m_componentCarrierId);
                   NS_LOG_DEBUG (this << " rnti= " << rnti << " lcid= " << (uint32_t) lcid << " layer= " << k);
-                  (*lcidIt).second->NotifyTxOpportunity (ind.m_buildDataList.at (i).m_rlcPduList.at (j).at (k).m_size, k, ind.m_buildDataList.at (i).m_dci.m_harqProcess, m_componentCarrierId, rnti, lcid);
+                  txOpParams.bytes = ind.m_buildDataList.at (i).m_rlcPduList.at (j).at (k).m_size;
+                  txOpParams.layer = k;
+                  txOpParams.harqId = ind.m_buildDataList.at (i).m_dci.m_harqProcess;
+                  txOpParams.componentCarrierId = m_componentCarrierId;
+                  txOpParams.rnti = rnti;
+                  txOpParams.lcid = lcid;
+                  (*lcidIt).second->NotifyTxOpportunity (txOpParams);
                 }
               else
                 {
@@ -1133,7 +1144,7 @@ LteEnbMac::DoSchedDlConfigInd (FfMacSchedSapUser::SchedDlConfigIndParameters ind
   rarMsg->SetRaRnti (raRnti);
   for (unsigned int i = 0; i < ind.m_buildRarList.size (); i++)
     {
-      std::map <uint8_t, uint32_t>::iterator itRapId = m_rapIdRntiMap.find (ind.m_buildRarList.at (i).m_rnti);
+      std::map <uint16_t, uint32_t>::iterator itRapId = m_rapIdRntiMap.find (ind.m_buildRarList.at (i).m_rnti);
       if (itRapId == m_rapIdRntiMap.end ())
         {
           NS_FATAL_ERROR ("Unable to find rapId of RNTI " << ind.m_buildRarList.at (i).m_rnti);

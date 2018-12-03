@@ -363,7 +363,7 @@ private:
   */
   void DoDlInfoListElementHarqFeeback (DlInfoListElement_s params);
 
-  /// rnti, lcid, SAP of the RLC instance
+  /// RNTI, LC ID, SAP of the RLC instance
   std::map <uint16_t, std::map<uint8_t, LteMacSapUser*> > m_rlcAttached;
 
   std::vector <CqiListElement_s> m_dlCqiReceived; ///< DL-CQI received
@@ -450,7 +450,7 @@ private:
  
   std::map<uint8_t, uint32_t> m_receivedRachPreambleCount; ///< received RACH preamble count
 
-  std::map<uint8_t, uint32_t> m_rapIdRntiMap; ///< RAPID RNTI map
+  std::map<uint16_t, uint32_t> m_rapIdRntiMap; ///< RAPID RNTI map
 
   /// component carrier Id used to address sap
   uint8_t m_componentCarrierId;

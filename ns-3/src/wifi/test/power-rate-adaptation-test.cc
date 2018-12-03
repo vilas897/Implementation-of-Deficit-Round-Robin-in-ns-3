@@ -18,13 +18,14 @@
  * Author: Matías Richart <mrichart@fing.edu.uy>
  */
 
+#include "ns3/node.h"
 #include "ns3/wifi-net-device.h"
 #include "ns3/yans-wifi-channel.h"
+#include "ns3/yans-wifi-phy.h"
 #include "ns3/adhoc-wifi-mac.h"
 #include "ns3/constant-position-mobility-model.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
-#include "ns3/double.h"
 
 using namespace ns3;
 
@@ -72,7 +73,9 @@ PowerRateAdaptationTest::ConfigureNode ()
   /*
    * Create mac layer. We use Adhoc because association is not needed to get supported rates.
    */
+  Ptr<WifiNetDevice> dev = CreateObject<WifiNetDevice> ();
   Ptr<AdhocWifiMac> mac = CreateObject<AdhocWifiMac> ();
+  mac->SetDevice (dev);
   mac->ConfigureStandard (WIFI_PHY_STANDARD_80211a);
 
   /*
@@ -83,7 +86,6 @@ PowerRateAdaptationTest::ConfigureNode ()
   /*
    * Create and configure phy layer.
    */
-  Ptr<WifiNetDevice> dev = CreateObject<WifiNetDevice> ();
   Ptr<YansWifiPhy> phy = CreateObject<YansWifiPhy> ();
   phy->SetChannel (channel);
   phy->SetDevice (dev);
@@ -165,7 +167,7 @@ PowerRateAdaptationTest::TestParf ()
    */
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -181,7 +183,7 @@ PowerRateAdaptationTest::TestParf ()
    * As we are using recovery power, one failure make power increase.
    *
    */
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -198,10 +200,10 @@ PowerRateAdaptationTest::TestParf ()
    */
   for (int i = 0; i < 7; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
-      manager->ReportDataFailed (remoteAddress, &packetHeader);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
+      manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
     }
-  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -216,7 +218,7 @@ PowerRateAdaptationTest::TestParf ()
    * As we are using recovery power, one failure make power increase. recoveryPower=false.
    */
 
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -231,8 +233,8 @@ PowerRateAdaptationTest::TestParf ()
    * After two consecutive fails the rate is decreased or the power increased.
    * As we are at maximal power, the rate should be decreased.
    */
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -249,7 +251,7 @@ PowerRateAdaptationTest::TestParf ()
    */
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -265,7 +267,7 @@ PowerRateAdaptationTest::TestParf ()
    * As we are using recovery rate, one failure make rate decrease. recoveryRate=false.
    */
 
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -282,7 +284,7 @@ PowerRateAdaptationTest::TestParf ()
    */
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -300,7 +302,7 @@ PowerRateAdaptationTest::TestParf ()
    */
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -316,11 +318,11 @@ PowerRateAdaptationTest::TestParf ()
    * One successful transmissions after a power decrease make recoverPower=false.
    * So we need two consecutive failures to increase power again.
    */
-  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
 
   for (int i = 0; i < 2; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -386,7 +388,7 @@ PowerRateAdaptationTest::TestAparf ()
    */
   for (int i = 0; i < 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -402,7 +404,7 @@ PowerRateAdaptationTest::TestAparf ()
    * One failure make the power to be increased again.
    * Change to state Low.
    */
-  manager->ReportDataFailed (remoteAddress, &packetHeader);
+  manager->ReportDataFailed (remoteAddress, &packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -420,7 +422,7 @@ PowerRateAdaptationTest::TestAparf ()
    */
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -439,7 +441,7 @@ PowerRateAdaptationTest::TestAparf ()
 
   for (int i = 0; i < 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -457,7 +459,7 @@ PowerRateAdaptationTest::TestAparf ()
    */
   for (int i = 0; i < 16 * 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -473,7 +475,7 @@ PowerRateAdaptationTest::TestAparf ()
    * After one fail the rate is decreased or the power increased.
    * As we are at minimal power, the power should be increased.
    */
-  manager->ReportDataFailed (remoteAddress,&packetHeader);
+  manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -490,7 +492,7 @@ PowerRateAdaptationTest::TestAparf ()
    */
   for (int i = 0; i < 16; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -507,7 +509,7 @@ PowerRateAdaptationTest::TestAparf ()
    * As we are at maximal power, the rate should be decreased.
    * Set critical rate to 54 Mbps.
    */
-  manager->ReportDataFailed (remoteAddress,&packetHeader);
+  manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -524,7 +526,7 @@ PowerRateAdaptationTest::TestAparf ()
    */
   for (int i = 0; i < 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -538,13 +540,13 @@ PowerRateAdaptationTest::TestAparf ()
 
   /*
    * As we are in state High we need 3 successful transmissions to increase rate or decrease power.
-   * After 10 power changes critical rate is reseted.
+   * After 10 power changes critical rate is reset.
    * So after 10*3 successful transmissions critical rate is set to 0.
    * And 3 successful transmissions more will make power increase to maximum and rate increase to the critical rate.
    */
   for (int i = 0; i < 9 * 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -556,7 +558,7 @@ PowerRateAdaptationTest::TestAparf ()
 
   for (int i = 0; i < 3; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -657,7 +659,7 @@ PowerRateAdaptationTest::TestRrpaa ()
    */
   for (int i = 0; i < 6; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -670,7 +672,7 @@ PowerRateAdaptationTest::TestRrpaa ()
   /**
    * Test that 7 is enough.
    */
-  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -687,7 +689,7 @@ PowerRateAdaptationTest::TestRrpaa ()
    */
   for (int i = 0; i < 4; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -697,7 +699,7 @@ PowerRateAdaptationTest::TestRrpaa ()
   NS_TEST_ASSERT_MSG_EQ (mode.GetDataRate (txVector.GetChannelWidth (), txVector.GetGuardInterval (), 1), 9000000, "RRPAA: Incorrect vale of data rate");
   NS_TEST_ASSERT_MSG_EQ (power, 17, "RRPAA: Incorrect value of power level");
 
-  manager->ReportDataFailed (remoteAddress,&packetHeader);
+  manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -714,7 +716,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 7; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -726,7 +728,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 10; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -738,7 +740,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 13; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -750,7 +752,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 19; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -762,7 +764,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 23; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -774,7 +776,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 33; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -786,7 +788,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 43; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -806,7 +808,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 49; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -816,7 +818,7 @@ PowerRateAdaptationTest::TestRrpaa ()
   NS_TEST_ASSERT_MSG_EQ (mode.GetDataRate (txVector.GetChannelWidth (), txVector.GetGuardInterval (), 1), 54000000, "RRPAA: Incorrect vale of data rate");
   NS_TEST_ASSERT_MSG_EQ (power, 17, "RRPAA: Incorrect value of power level");
 
-  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+  manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
   mode = txVector.GetMode ();
@@ -834,7 +836,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 16 * 50; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -852,7 +854,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 6; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -870,7 +872,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 16 * 6; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -888,7 +890,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 6; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -904,7 +906,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 11; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -924,7 +926,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 25; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -936,7 +938,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 5; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -948,7 +950,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 5; i++)
     {
-      manager->ReportDataFailed (remoteAddress,&packetHeader);
+      manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -960,7 +962,7 @@ PowerRateAdaptationTest::TestRrpaa ()
 
   for (int i = 0; i < 25; i++)
     {
-      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+      manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
     }
 
   txVector = manager->GetDataTxVector (remoteAddress, &packetHeader, packet);
@@ -980,12 +982,12 @@ PowerRateAdaptationTest::TestRrpaa ()
     {
       for (int j = 0; j < 25; j++)
         {
-          manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0);
+          manager->ReportDataOk (remoteAddress, &packetHeader, 0, ackMode, 0, packet->GetSize ());
         }
 
       for (int j = 0; j < 5; j++)
         {
-          manager->ReportDataFailed (remoteAddress,&packetHeader);
+          manager->ReportDataFailed (remoteAddress,&packetHeader, packet->GetSize ());
         }
     }
 

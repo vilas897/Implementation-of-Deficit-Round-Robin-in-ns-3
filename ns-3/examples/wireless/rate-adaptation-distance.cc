@@ -38,24 +38,33 @@
  * - (if logging is enabled) the changes of rate to standard output.
  *
  * Example usage:
- * ./waf --run "rate-adaptation-distance --manager=ns3::MinstrelWifiManager --outputFileName=minstrel"
+ * ./waf --run "rate-adaptation-distance --staManager=ns3::MinstrelWifiManager --apManager=ns3::MinstrelWifiManager --outputFileName=minstrel"
  *
  * Another example (moving towards the AP):
- * ./waf --run "rate-adaptation-distance --manager=ns3::MinstrelWifiManager --outputFileName=minstrel --stepsSize=1 --STA1_x=-200"
+ * ./waf --run "rate-adaptation-distance --staManager=ns3::MinstrelWifiManager --apManager=ns3::MinstrelWifiManager --outputFileName=minstrel --stepsSize=1 --STA1_x=-200"
  *
  * Example for HT rates with SGI and channel width of 40MHz:
- * ./waf --run "rate-adaptation-distance --manager=ns3::MinstrelHtWifiManager --outputFileName=minstrelHt --shortGuardInterval=true --channelWidth=40"
+ * ./waf --run "rate-adaptation-distance --staManager=ns3::MinstrelHtWifiManager --apManager=ns3::MinstrelHtWifiManager --outputFileName=minstrelHt --shortGuardInterval=true --channelWidth=40"
  *
  * To enable the log of rate changes:
  * export NS_LOG=RateAdaptationDistance=level_info
  */
 
-#include "ns3/core-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/mobility-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/stats-module.h"
+#include "ns3/gnuplot.h"
+#include "ns3/command-line.h"
+#include "ns3/config.h"
+#include "ns3/uinteger.h"
+#include "ns3/boolean.h"
+#include "ns3/log.h"
+#include "ns3/yans-wifi-helper.h"
+#include "ns3/ssid.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
+#include "ns3/packet-sink-helper.h"
+#include "ns3/on-off-helper.h"
+#include "ns3/yans-wifi-channel.h"
+#include "ns3/mobility-model.h"
 
 using namespace ns3;
 using namespace std;
@@ -143,7 +152,7 @@ int main (int argc, char *argv[])
   std::string apManager = "ns3::MinstrelHtWifiManager";
   std::string standard = "802.11n-5GHz";
   std::string outputFileName = "minstrelHT";
-  uint32_t BE_MaxAmpduSize = 65535;
+  uint32_t BeMaxAmpduSize = 65535;
   bool shortGuardInterval = false;
   uint32_t chWidth = 20;
   int ap1_x = 0;
@@ -161,7 +170,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("shortGuardInterval", "Enable Short Guard Interval in all stations", shortGuardInterval);
   cmd.AddValue ("channelWidth", "Channel width of all the stations", chWidth);
   cmd.AddValue ("rtsThreshold", "RTS threshold", rtsThreshold);
-  cmd.AddValue ("BE_MaxAmpduSize", "BE Mac A-MPDU size", BE_MaxAmpduSize);
+  cmd.AddValue ("BeMaxAmpduSize", "BE Mac A-MPDU size", BeMaxAmpduSize);
   cmd.AddValue ("outputFileName", "Output filename", outputFileName);
   cmd.AddValue ("steps", "How many different distances to try", steps);
   cmd.AddValue ("stepsTime", "Time on each step", stepsTime);
@@ -186,8 +195,6 @@ int main (int argc, char *argv[])
   YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
   wifiPhy.SetChannel (wifiChannel.Create ());
-
-  wifiPhy.Set ("ShortGuardEnabled", BooleanValue (shortGuardInterval));
 
   NetDeviceContainer wifiApDevices;
   NetDeviceContainer wifiStaDevices;
@@ -244,8 +251,7 @@ int main (int argc, char *argv[])
 
       Ssid ssid = Ssid ("AP");
       wifiMac.SetType ("ns3::StaWifiMac",
-                       "Ssid", SsidValue (ssid),
-                       "BE_MaxAmpduSize", UintegerValue (BE_MaxAmpduSize));
+                       "Ssid", SsidValue (ssid));
       wifiStaDevices.Add (wifi.Install (wifiPhy, wifiMac, wifiStaNodes.Get (0)));
 
       //Configure the AP node
@@ -253,9 +259,10 @@ int main (int argc, char *argv[])
 
       ssid = Ssid ("AP");
       wifiMac.SetType ("ns3::ApWifiMac",
-                       "Ssid", SsidValue (ssid),
-                       "BE_MaxAmpduSize", UintegerValue (BE_MaxAmpduSize));
+                       "Ssid", SsidValue (ssid));
       wifiApDevices.Add (wifi.Install (wifiPhy, wifiMac, wifiApNodes.Get (0)));
+
+      Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/BeMaxAmpduSize", UintegerValue (BeMaxAmpduSize));
     }
   else if (standard == "802.11ac")
     {
@@ -267,8 +274,7 @@ int main (int argc, char *argv[])
 
       Ssid ssid = Ssid ("AP");
       wifiMac.SetType ("ns3::StaWifiMac",
-                       "Ssid", SsidValue (ssid),
-                       "BE_MaxAmpduSize", UintegerValue (BE_MaxAmpduSize));
+                       "Ssid", SsidValue (ssid));
       wifiStaDevices.Add (wifi.Install (wifiPhy, wifiMac, wifiStaNodes.Get (0)));
 
       //Configure the AP node
@@ -276,9 +282,10 @@ int main (int argc, char *argv[])
 
       ssid = Ssid ("AP");
       wifiMac.SetType ("ns3::ApWifiMac",
-                       "Ssid", SsidValue (ssid),
-                       "BE_MaxAmpduSize", UintegerValue (BE_MaxAmpduSize));
+                       "Ssid", SsidValue (ssid));
       wifiApDevices.Add (wifi.Install (wifiPhy, wifiMac, wifiApNodes.Get (0)));
+
+      Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/VhtConfiguration/BeMaxAmpduSize", UintegerValue (BeMaxAmpduSize));
     }
 
   wifiDevices.Add (wifiStaDevices);
@@ -286,6 +293,9 @@ int main (int argc, char *argv[])
 
   // Set channel width
   Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue (chWidth));
+
+  // Set guard interval
+  Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/ShortGuardIntervalSupported", BooleanValue (shortGuardInterval));
 
   // Configure the mobility.
   MobilityHelper mobility;
@@ -319,7 +329,7 @@ int main (int argc, char *argv[])
   ApplicationContainer apps_sink = sink.Install (wifiStaNodes.Get (0));
 
   OnOffHelper onoff ("ns3::UdpSocketFactory", InetSocketAddress (sinkAddress, port));
-  onoff.SetConstantRate (DataRate ("200Mb/s"), 1420);
+  onoff.SetConstantRate (DataRate ("400Mb/s"), 1420);
   onoff.SetAttribute ("StartTime", TimeValue (Seconds (0.5)));
   onoff.SetAttribute ("StopTime", TimeValue (Seconds (simuTime)));
   ApplicationContainer apps_source = onoff.Install (wifiApNodes.Get (0));

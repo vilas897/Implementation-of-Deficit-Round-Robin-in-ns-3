@@ -26,10 +26,6 @@
 
 #include "ns3/object.h"
 #include "ns3/packet-filter.h"
-#include "ns3/timer.h"
-#include "ns3/event-id.h"
-#include "ns3/simulator.h"
-#include "ns3/random-variable-stream.h"
 
 namespace ns3 {
 
@@ -53,105 +49,6 @@ public:
 private:
   virtual bool CheckProtocol (Ptr<QueueDiscItem> item) const;
   virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const = 0;
-};
-
-
-/**
- * \ingroup internet
- *
- * FqCoDelIpv4PacketFilter is the filter to be added to the FQCoDel
- * queue disc to simulate the behavior of the fq-codel Linux queue disc.
- *
- */
-class FqCoDelIpv4PacketFilter : public Ipv4PacketFilter {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-
-  FqCoDelIpv4PacketFilter ();
-  virtual ~FqCoDelIpv4PacketFilter ();
-
-private:
-  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
-
-  uint32_t m_perturbation; //!< hash perturbation value
-};
-
-/**
- * \ingroup internet
- *
- * DRRIpv4PacketFilter is the filter to be added to the DRRQueueDisc
- * to simulate the behavior of the DRR Linux queue disc.
- *       */
-class DRRIpv4PacketFilter : public Ipv4PacketFilter {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-
-  DRRIpv4PacketFilter ();
-  virtual ~DRRIpv4PacketFilter ();
-
-private:
-  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
-
-};
-
-
-
-/**
- * \ingroup internet
- *
- * SfqIpv4PacketFilter is the filter to be added to the SFQ
- * queue disc to simulate the behavior of the sfq Linux queue disc.
- *
- */
-class SfqIpv4PacketFilter : public Ipv4PacketFilter {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-
-  SfqIpv4PacketFilter ();
-  virtual ~SfqIpv4PacketFilter ();
-
-private:
-  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
-  virtual void PerturbHash ();
-
-  uint32_t m_perturbation;                 //!< hash perturbation value
-  Time m_perturbTime = MilliSeconds (100); //!< interval after which perturbation takes place
-  Ptr<UniformRandomVariable> rand;         //!< random number generator for perturbation
-};
-
-/**
- * \ingroup internet
- *
- * SfqNs2Ipv4PacketFilter is the filter to be added to the SFQ
- * queue disc to simulate the behavior of the sfq ns-2 queue disc.
- *
- */
-class SfqNs2Ipv4PacketFilter : public Ipv4PacketFilter {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-
-  SfqNs2Ipv4PacketFilter ();
-  virtual ~SfqNs2Ipv4PacketFilter ();
-
-private:
-  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
-
 };
 
 } // namespace ns3

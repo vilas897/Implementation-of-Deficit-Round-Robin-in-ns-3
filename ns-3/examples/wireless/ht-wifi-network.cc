@@ -19,11 +19,24 @@
  *          Sebastien Deronne <sebastien.deronne@gmail.com>
  */
 
-#include "ns3/core-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
-#include "ns3/internet-module.h"
+#include "ns3/command-line.h"
+#include "ns3/config.h"
+#include "ns3/uinteger.h"
+#include "ns3/boolean.h"
+#include "ns3/double.h"
+#include "ns3/string.h"
+#include "ns3/log.h"
+#include "ns3/yans-wifi-helper.h"
+#include "ns3/ssid.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
+#include "ns3/udp-client-server-helper.h"
+#include "ns3/packet-sink-helper.h"
+#include "ns3/on-off-helper.h"
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/packet-sink.h"
+#include "ns3/yans-wifi-channel.h"
 
 // This is a simple example in order to show how to configure an IEEE 802.11n Wi-Fi network.
 //
@@ -114,9 +127,6 @@ int main (int argc, char *argv[])
               YansWifiPhyHelper phy = YansWifiPhyHelper::Default ();
               phy.SetChannel (channel.Create ());
 
-              // Set guard interval
-              phy.Set ("ShortGuardEnabled", BooleanValue (sgi));
-
               WifiMacHelper mac;
               WifiHelper wifi;
               if (frequency == 5.0)
@@ -156,6 +166,9 @@ int main (int argc, char *argv[])
 
               // Set channel width
               Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue (channelWidth));
+              
+              // Set guard interval
+              Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/ShortGuardIntervalSupported", BooleanValue (sgi));
 
               // mobility.
               MobilityHelper mobility;
@@ -228,7 +241,6 @@ int main (int argc, char *argv[])
 
               Simulator::Stop (Seconds (simulationTime + 1));
               Simulator::Run ();
-              Simulator::Destroy ();
 
               uint64_t rxBytes = 0;
               if (udp)
@@ -240,14 +252,17 @@ int main (int argc, char *argv[])
                   rxBytes = DynamicCast<PacketSink> (serverApp.Get (0))->GetTotalRx ();
                 }
               double throughput = (rxBytes * 8) / (simulationTime * 1000000.0); //Mbit/s
+
+              Simulator::Destroy ();
+
               std::cout << mcs << "\t\t\t" << channelWidth << " MHz\t\t\t" << sgi << "\t\t\t" << throughput << " Mbit/s" << std::endl;
+
               //test first element
               if (mcs == 0 && channelWidth == 20 && sgi == 0)
                 {
                   if (throughput < minExpectedThroughput)
                     {
-                      NS_LOG_ERROR ("Obtained throughput " << throughput << " is not expected!");
-                      exit (1);
+                      NS_FATAL_ERROR ("Obtained throughput " << throughput << " is not expected!");
                     }
                 }
               //test last element
@@ -255,8 +270,7 @@ int main (int argc, char *argv[])
                 {
                   if (maxExpectedThroughput > 0 && throughput > maxExpectedThroughput)
                     {
-                      NS_LOG_ERROR ("Obtained throughput " << throughput << " is not expected!");
-                      exit (1);
+                      NS_FATAL_ERROR ("Obtained throughput " << throughput << " is not expected!");
                     }
                 }
               //test previous throughput is smaller (for the same mcs)
@@ -266,8 +280,7 @@ int main (int argc, char *argv[])
                 }
               else
                 {
-                  NS_LOG_ERROR ("Obtained throughput " << throughput << " is not expected!");
-                  exit (1);
+                  NS_FATAL_ERROR ("Obtained throughput " << throughput << " is not expected!");
                 }
               //test previous throughput is smaller (for the same channel width and GI)
               if (throughput > prevThroughput [index])
@@ -276,8 +289,7 @@ int main (int argc, char *argv[])
                 }
               else
                 {
-                  NS_LOG_ERROR ("Obtained throughput " << throughput << " is not expected!");
-                  exit (1);
+                  NS_FATAL_ERROR ("Obtained throughput " << throughput << " is not expected!");
                 }
               index++;
 

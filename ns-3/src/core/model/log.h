@@ -25,7 +25,10 @@
 #include <iostream>
 #include <stdint.h>
 #include <map>
+#include <vector>
 
+#include "node-printer.h"
+#include "time-printer.h"
 #include "log-macros-enabled.h"
 #include "log-macros-disabled.h"
 
@@ -296,45 +299,34 @@ namespace ns3 {
 void LogComponentPrintList (void);
 
 /**
- * Function signature for prepending the simulation time
- * to a log message.
- *
- * \param [in,out] os The output stream to print on.
- */
-typedef void (*LogTimePrinter)(std::ostream &os);
-/**
- * Function signature for prepending the node id
- * to a log message.
- *
- * \param [in,out] os The output stream to print on.
- */
-typedef void (*LogNodePrinter)(std::ostream &os);
-
-/**
- * Set the LogTimePrinter function to be used
+ * Set the TimePrinter function to be used
  * to prepend log messages with the simulation time.
  *
- * \param [in] lp The LogTimePrinter function.
+ * The default is DefaultTimePrinter().
+ *
+ * \param [in] lp The TimePrinter function.
  */
-void LogSetTimePrinter (LogTimePrinter lp);
+void LogSetTimePrinter (TimePrinter lp);
 /**
  * Get the LogTimePrinter function currently in use.
- * \returns The LogTimePrinter function.
+ * \returns The current LogTimePrinter function.
  */
-LogTimePrinter LogGetTimePrinter (void);
+TimePrinter LogGetTimePrinter (void);
 
 /**
  * Set the LogNodePrinter function to be used
  * to prepend log messages with the node id.
  *
+ * The default is DefaultNodePrinter().
+ *
  * \param [in] np The LogNodePrinter function.
  */
-void LogSetNodePrinter (LogNodePrinter np);
+void LogSetNodePrinter (NodePrinter np);
 /**
  * Get the LogNodePrinter function currently in use.
- * \returns The LogNodePrinter function.
+ * \returns The current LogNodePrinter function.
  */
-LogNodePrinter LogGetNodePrinter (void);
+NodePrinter LogGetNodePrinter (void);
 
 
 /**
@@ -475,6 +467,15 @@ public:
   template<typename T>
   ParameterLogger& operator<< (T param);
 
+  /**
+   * Overload for vectors, to print each element.
+   *
+   * \param [in] vector The vector of parameters
+   * \return This ParameterLogger, so it's chainable.
+   */
+  template<typename T>
+  ParameterLogger& operator<< (std::vector<T> vector);
+
 };
 
 template<typename T>
@@ -489,6 +490,17 @@ ParameterLogger::operator<< (T param)
   else
     {
       m_os << ", " << param;
+    }
+  return *this;
+}
+
+template<typename T>
+ParameterLogger&
+ParameterLogger::operator<< (std::vector<T> vector)
+{
+  for (auto i : vector)
+    {
+      *this << i;
     }
   return *this;
 }
@@ -511,6 +523,24 @@ template<>
 ParameterLogger&
 ParameterLogger::operator<< <const char *>(const char * param);
   
+/**
+ * Specialization for int8_t.
+ * \param [in] param The function parameter.
+ * \return This ParameterLogger, so it's chainable.
+ */
+template<>
+ParameterLogger&
+  ParameterLogger::operator<< <int8_t>(int8_t param);
+
+/**
+ * Specialization for uint8_t.
+ * \param [in] param The function parameter.
+ * \return This ParameterLogger, so it's chainable.
+ */
+template<>
+ParameterLogger&
+  ParameterLogger::operator<< <uint8_t>(uint8_t param);
+
 } // namespace ns3
 
 /**@}*/  // \ingroup logging

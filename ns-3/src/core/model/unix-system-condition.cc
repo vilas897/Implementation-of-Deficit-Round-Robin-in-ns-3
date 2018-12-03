@@ -17,8 +17,9 @@
  */
 
 #include <pthread.h>
-#include <cerrno> // for ETIMEDOUT
-#include <sys/time.h>
+#include <cerrno>        // for ETIMEDOUT
+#include <time.h>        // for timespec
+#include <sys/time.h>    // for timeval, gettimeofday
 
 #include "fatal-error.h"
 #include "system-condition.h"
@@ -207,7 +208,7 @@ SystemConditionPrivate::TimedWait (uint64_t ns)
 SystemCondition::SystemCondition() 
   : m_priv (new SystemConditionPrivate ())
 {
-  NS_LOG_FUNCTION (this);;
+  NS_LOG_FUNCTION (this);
 }
 
 SystemCondition::~SystemCondition () 

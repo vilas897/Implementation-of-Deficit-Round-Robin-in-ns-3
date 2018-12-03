@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "ns3/spectrum-phy.h"
 #include "ns3/test.h"
 #include "ns3/spectrum-wifi-helper.h"
 #include "ns3/wifi-spectrum-value-helper.h"
@@ -25,6 +26,7 @@
 #include "ns3/wifi-mac-trailer.h"
 #include "ns3/wifi-phy-tag.h"
 #include "ns3/wifi-spectrum-signal-parameters.h"
+#include "ns3/wifi-phy-listener.h"
 #include "ns3/log.h"
 
 using namespace ns3;
@@ -33,8 +35,8 @@ NS_LOG_COMPONENT_DEFINE ("SpectrumWifiPhyBasicTest");
 
 static const uint8_t CHANNEL_NUMBER = 36;
 static const uint32_t FREQUENCY = 5180; // MHz
-static const uint8_t CHANNEL_WIDTH = 20; // MHz
-static const uint8_t GUARD_WIDTH = CHANNEL_WIDTH; // MHz (expanded to channel width to model spectrum mask)
+static const uint16_t CHANNEL_WIDTH = 20; // MHz
+static const uint16_t GUARD_WIDTH = CHANNEL_WIDTH; // MHz (expanded to channel width to model spectrum mask)
 
 /**
  * \ingroup wifi-test
@@ -53,6 +55,7 @@ public:
    */
   SpectrumWifiPhyBasicTest (std::string name);
   virtual ~SpectrumWifiPhyBasicTest ();
+
 protected:
   virtual void DoSetup (void);
   Ptr<SpectrumWifiPhy> m_phy; ///< Phy
@@ -76,11 +79,10 @@ protected:
   void SpectrumWifiPhyRxSuccess (Ptr<Packet> p, double snr, WifiTxVector txVector);
   /**
    * Spectrum wifi receive failure function
-   * \param p the packet
-   * \param snr the SNR
    */
-  void SpectrumWifiPhyRxFailure (Ptr<Packet> p, double snr);
+  void SpectrumWifiPhyRxFailure (void);
   uint32_t m_count; ///< count
+
 private:
   virtual void DoRun (void);
 };
@@ -142,9 +144,9 @@ SpectrumWifiPhyBasicTest::SpectrumWifiPhyRxSuccess (Ptr<Packet> p, double snr, W
 }
 
 void
-SpectrumWifiPhyBasicTest::SpectrumWifiPhyRxFailure (Ptr<Packet> p, double snr)
+SpectrumWifiPhyBasicTest::SpectrumWifiPhyRxFailure (void)
 {
-  NS_LOG_FUNCTION (this << p << snr);
+  NS_LOG_FUNCTION (this);
   m_count++;
 }
 
@@ -165,8 +167,6 @@ SpectrumWifiPhyBasicTest::DoSetup (void)
   m_phy->SetFrequency (FREQUENCY);
   m_phy->SetReceiveOkCallback (MakeCallback (&SpectrumWifiPhyBasicTest::SpectrumWifiPhyRxSuccess, this));
   m_phy->SetReceiveErrorCallback (MakeCallback (&SpectrumWifiPhyBasicTest::SpectrumWifiPhyRxFailure, this));
-  //Bug 2460: CcaMode1Threshold default should be set to -62 dBm when using Spectrum
-  m_phy->SetCcaMode1Threshold (-62.0);
 }
 
 // Test that the expected number of packet receptions occur.

@@ -32,6 +32,7 @@ WifiTxVector::WifiTxVector ()
     m_ness (0),
     m_aggregation (false),
     m_stbc (false),
+    m_bssColor (0),
     m_modeInitialized (false),
     m_txPowerLevelInitialized (false)
 {
@@ -44,9 +45,10 @@ WifiTxVector::WifiTxVector (WifiMode mode,
                             uint8_t nTx,
                             uint8_t nss,
                             uint8_t ness,
-                            uint8_t channelWidth,
+                            uint16_t channelWidth,
                             bool aggregation,
-                            bool stbc)
+                            bool stbc,
+                            uint8_t bssColor)
   : m_mode (mode),
     m_txPowerLevel (powerLevel),
     m_preamble (preamble),
@@ -57,6 +59,7 @@ WifiTxVector::WifiTxVector (WifiMode mode,
     m_ness (ness),
     m_aggregation (aggregation),
     m_stbc (stbc),
+    m_bssColor (bssColor),
     m_modeInitialized (true),
     m_txPowerLevelInitialized (true)
 {
@@ -88,7 +91,7 @@ WifiTxVector::GetPreambleType (void) const
   return m_preamble;
 }
 
-uint8_t
+uint16_t
 WifiTxVector::GetChannelWidth (void) const
 {
   return m_channelWidth;
@@ -151,7 +154,7 @@ WifiTxVector::SetPreambleType (WifiPreamble preamble)
 }
 
 void
-WifiTxVector::SetChannelWidth (uint8_t channelWidth)
+WifiTxVector::SetChannelWidth (uint16_t channelWidth)
 {
   m_channelWidth = channelWidth;
 }
@@ -192,6 +195,18 @@ WifiTxVector::SetStbc (bool stbc)
   m_stbc = stbc;
 }
 
+void
+WifiTxVector::SetBssColor (uint8_t color)
+{
+  m_bssColor = color;
+}
+
+uint8_t
+WifiTxVector::GetBssColor (void) const
+{
+  return m_bssColor;
+}
+
 bool
 WifiTxVector::IsValid (void) const
 {
@@ -229,7 +244,7 @@ std::ostream & operator << ( std::ostream &os, const WifiTxVector &v)
   os << "mode: " << v.GetMode () <<
     " txpwrlvl: " << +v.GetTxPowerLevel () <<
     " preamble: " << v.GetPreambleType () <<
-    " channel width: " << +v.GetChannelWidth () <<
+    " channel width: " << v.GetChannelWidth () <<
     " GI: " << v.GetGuardInterval () <<
     " NTx: " << +v.GetNTx () <<
     " Nss: " << +v.GetNss () <<

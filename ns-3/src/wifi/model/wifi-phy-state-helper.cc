@@ -18,12 +18,13 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 
-#include "wifi-phy-state-helper.h"
-#include "wifi-tx-vector.h"
+#include <algorithm>
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "ns3/packet.h"
-#include <algorithm>
+#include "wifi-phy-state-helper.h"
+#include "wifi-tx-vector.h"
+#include "wifi-phy-listener.h"
 
 namespace ns3 {
 
@@ -479,7 +480,7 @@ WifiPhyStateHelper::SwitchFromRxEndError (Ptr<Packet> packet, double snr)
   DoSwitchFromRx ();
   if (!m_rxErrorCallback.IsNull ())
     {
-      m_rxErrorCallback (packet, snr);
+      m_rxErrorCallback ();
     }
 }
 
@@ -516,6 +517,7 @@ WifiPhyStateHelper::SwitchMaybeToCcaBusy (Time duration)
     {
       m_startCcaBusy = now;
     }
+  m_stateLogger (now, duration, WifiPhyState::CCA_BUSY);
   m_endCcaBusy = std::max (m_endCcaBusy, now + duration);
 }
 

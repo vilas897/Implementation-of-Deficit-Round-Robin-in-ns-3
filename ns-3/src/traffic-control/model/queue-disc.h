@@ -22,7 +22,7 @@
 
 #include "ns3/object.h"
 #include "ns3/traced-value.h"
-#include "ns3/net-device.h"
+#include "ns3/traced-callback.h"
 #include "ns3/queue-item.h"
 #include "ns3/queue-size.h"
 #include <vector>
@@ -338,16 +338,39 @@ public:
   const Stats& GetStats (void);
 
   /**
-   * \brief Set the NetDevice on which this queue discipline is installed.
-   * \param device the NetDevice on which this queue discipline is installed.
+   * \param ndqi the NetDeviceQueueInterface aggregated to the receiving object.
+   *
+   * Set the pointer to the NetDeviceQueueInterface object aggregated to the
+   * object receiving the packets dequeued from this queue disc.
    */
-  void SetNetDevice (Ptr<NetDevice> device);
+  void SetNetDeviceQueueInterface (Ptr<NetDeviceQueueInterface> ndqi);
 
   /**
-   * \brief Get the NetDevice on which this queue discipline is installed
-   * \return the NetDevice on which this queue discipline is installed.
+   * \return the NetDeviceQueueInterface aggregated to the receiving object.
+   *
+   * Get the pointer to the NetDeviceQueueInterface object aggregated to the
+   * object receiving the packets dequeued from this queue disc.
    */
-  Ptr<NetDevice> GetNetDevice (void) const;
+  Ptr<NetDeviceQueueInterface> GetNetDeviceQueueInterface (void) const;
+
+  /// Callback invoked to send a packet to the receiving object when Run is called
+  typedef std::function<void (Ptr<QueueDiscItem>)> SendCallback;
+
+  /**
+   * \param func the callback to send a packet to the receiving object.
+   *
+   * Set the callback used by the Transmit method (called eventually by the Run
+   * method) to send a packet to the receiving object.
+   */
+  void SetSendCallback (SendCallback func);
+
+  /**
+   * \return the callback to send a packet to the receiving object.
+   *
+   * Get the callback used by the Transmit method (called eventually by the Run
+   * method) to send a packet to the receiving object.
+   */
+  SendCallback GetSendCallback (void) const;
 
   /**
    * \brief Set the maximum number of dequeue operations following a packet enqueue
@@ -371,28 +394,22 @@ public:
   bool Enqueue (Ptr<QueueDiscItem> item);
 
   /**
-   * Request the queue discipline to extract a packet. This function only updates
-   * the statistics and calls the (private) DoDequeue function, which must be
-   * implemented by derived classes.
+   * Extract from the queue disc the packet that has been dequeued by calling
+   * Peek, if any, or call the private DoDequeue method (which must be
+   * implemented by derived classes) to dequeue a packet, otherwise.
+   *
    * \return 0 if the operation was not successful; the item otherwise.
    */
   Ptr<QueueDiscItem> Dequeue (void);
 
   /**
-   * Get a copy of the next packet the queue discipline will extract, without
-   * actually extracting the packet. This function only calls the (private)
-   * DoPeek function, which must be implemented by derived classes.
+   * Get a copy of the next packet the queue discipline will extract. This
+   * function only calls the (private) DoPeek function. This base class provides
+   * a default implementation of DoPeek, which dequeues the next packet but
+   * retains it into the queue disc.
    * \return 0 if the operation was not successful; the item otherwise.
    */
   Ptr<const QueueDiscItem> Peek (void);
-
-  /**
-   * Extract from the queue disc the packet that has been dequeued by calling
-   * PeekDequeued.
-   *
-   * \return 0 if the operation was not successful; the item otherwise.
-   */
-  Ptr<QueueDiscItem> DequeuePeeked (void);
 
   /**
    * Modelled after the Linux function __qdisc_run (net/sched/sch_generic.c)
@@ -415,13 +432,13 @@ public:
    * \param i the index of the queue
    * \return the i-th internal queue.
    */
-  Ptr<InternalQueue> GetInternalQueue (uint32_t i) const;
+  Ptr<InternalQueue> GetInternalQueue (std::size_t i) const;
 
   /**
    * \brief Get the number of internal queues
    * \return the number of internal queues.
    */
-  uint32_t GetNInternalQueues (void) const;
+  std::size_t GetNInternalQueues (void) const;
 
   /**
    * \brief Add a packet filter to the tail of the list of filters used to classify packets.
@@ -434,13 +451,13 @@ public:
    * \param i the index of the packet filter
    * \return the i-th packet filter.
    */
-  Ptr<PacketFilter> GetPacketFilter (uint32_t i) const;
+  Ptr<PacketFilter> GetPacketFilter (std::size_t i) const;
 
   /**
    * \brief Get the number of packet filters
    * \return the number of packet filters.
    */
-  uint32_t GetNPacketFilters (void) const;
+  std::size_t GetNPacketFilters (void) const;
 
   /**
    * \brief Add a queue disc class to the tail of the list of classes.
@@ -453,13 +470,13 @@ public:
    * \param i the index of the queue disc class
    * \return the i-th queue disc class.
    */
-  Ptr<QueueDiscClass> GetQueueDiscClass (uint32_t i) const;
+  Ptr<QueueDiscClass> GetQueueDiscClass (std::size_t i) const;
 
   /**
    * \brief Get the number of queue disc classes
    * \return the number of queue disc classes.
    */
-  uint32_t GetNQueueDiscClasses (void) const;
+  std::size_t GetNQueueDiscClasses (void) const;
 
   /**
    * Classify a packet by calling the packet filters, one at a time, until either
@@ -543,21 +560,6 @@ protected:
    */
   bool Mark (Ptr<QueueDiscItem> item, const char* reason);
 
-  /**
-   * Dequeue a packet and retain it in the queue disc as a requeued packet.
-   * The packet is not traced as requeued, nor is the total count of requeued
-   * packets increased. The dequeued packet is not counted in the backlog of
-   * the queue disc and is actually extracted from the queue disc by calling
-   * DequeuePeeked. Queue discs can point their DoPeek method to this one. This
-   * is recommended especially for queue discs for which it is not obvious what
-   * is the next packet that will be dequeued (e.g., queue discs having multiple
-   * internal queues or child queue discs or queue discs that drop packets
-   * after dequeue).
-   *
-   * \return 0 if the operation was not successful; the item otherwise.
-   */
-  Ptr<const QueueDiscItem> PeekDequeued (void);
-
 private:
   /**
    * \brief Copy constructor
@@ -590,10 +592,25 @@ private:
   virtual Ptr<QueueDiscItem> DoDequeue (void) = 0;
 
   /**
-   * This function returns a copy of the next packet the queue disc will extract.
+   * \brief Return a copy of the next packet the queue disc will extract.
+   *
+   * The implementation of this method is based on the qdisc_peek_dequeued
+   * function of the Linux kernel, which dequeues a packet and retains it in the
+   * queue disc as a requeued packet. The packet is not traced as requeued, nor
+   * is the total count of requeued packets increased. The packet is still
+   * considered to be part of the queue disc and the dequeue trace is fired
+   * when Dequeue is called and the packet is actually extracted from the
+   * queue disc.
+   *
+   * This approach is especially recommended for queue discs for which it is not
+   * obvious what is the next packet that will be dequeued (e.g., queue discs
+   * having multiple internal queues or child queue discs or queue discs that
+   * drop packets after dequeue). Subclasses can however provide their own
+   * implementation of this method that overrides the default one.
+   *
    * \return 0 if the operation was not successful; the packet otherwise.
    */
-  virtual Ptr<const QueueDiscItem> DoPeek (void) = 0;
+  virtual Ptr<const QueueDiscItem> DoPeek (void);
 
   /**
    * Check whether the current configuration is correct. Default objects (such
@@ -671,15 +688,16 @@ private:
 
   TracedValue<uint32_t> m_nPackets; //!< Number of packets in the queue
   TracedValue<uint32_t> m_nBytes;   //!< Number of bytes in the queue
-  TracedValue<Time> m_sojourn;      //!< Sojourn time of the latest dequeued packet
+  TracedCallback<Time> m_sojourn;   //!< Sojourn time of the latest dequeued packet
   QueueSize m_maxSize;              //!< max queue size
 
   Stats m_stats;                    //!< The collected statistics
   uint32_t m_quota;                 //!< Maximum number of packets dequeued in a qdisc run
-  Ptr<NetDevice> m_device;          //!< The NetDevice on which this queue discipline is installed
   Ptr<NetDeviceQueueInterface> m_devQueueIface;   //!< NetDevice queue interface
+  SendCallback m_send;              //!< Callback used to send a packet to the receiving object
   bool m_running;                   //!< The queue disc is performing multiple dequeue operations
   Ptr<QueueDiscItem> m_requeued;    //!< The last packet that failed to be transmitted
+  bool m_peeked;                    //!< A packet was dequeued because Peek was called
   std::string m_childQueueDiscDropMsg;  //!< Reason why a packet was dropped by a child queue disc
   QueueDiscSizePolicy m_sizePolicy;     //!< The queue disc size policy
   bool m_prohibitChangeMode;            //!< True if changing mode is prohibited

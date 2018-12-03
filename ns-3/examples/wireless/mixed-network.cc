@@ -18,11 +18,25 @@
  * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
  */
 
-#include "ns3/core-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
-#include "ns3/internet-module.h"
+#include "ns3/command-line.h"
+#include "ns3/config.h"
+#include "ns3/string.h"
+#include "ns3/pointer.h"
+#include "ns3/log.h"
+#include "ns3/yans-wifi-helper.h"
+#include "ns3/ssid.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
+#include "ns3/udp-client-server-helper.h"
+#include "ns3/on-off-helper.h"
+#include "ns3/yans-wifi-channel.h"
+#include "ns3/wifi-net-device.h"
+#include "ns3/qos-txop.h"
+#include "ns3/wifi-mac.h"
+#include "ns3/packet-sink-helper.h"
+#include "ns3/packet-sink.h"
+#include "ns3/ht-configuration.h"
 
 // This example shows how to configure mixed networks (i.e. mixed b/g and HT/non-HT) and how are performance in several scenarios.
 //
@@ -76,7 +90,7 @@ struct Parameters
   bool nGreenfieldHasTraffic;
   bool isUdp;
   uint32_t payloadSize;
-  uint32_t simulationTime;
+  double simulationTime;
 };
 
 class Experiment
@@ -129,7 +143,7 @@ Experiment::Run (Parameters params)
   uint32_t nWifiG = params.nWifiG;
   uint32_t nWifiNNGF = params.nWifiNNonGreenfield;
   uint32_t nWifiNGF = params.nWifiNGreenfield;
-  uint32_t simulationTime = params.simulationTime;
+  double simulationTime = params.simulationTime;
   uint32_t payloadSize = params.payloadSize;
 
   NodeContainer wifiBStaNodes;
@@ -178,14 +192,10 @@ Experiment::Run (Parameters params)
   wifi.SetStandard (WIFI_PHY_STANDARD_80211n_2_4GHZ);
   NetDeviceContainer nNGFStaDevice, nGFStaDevice;
   mac.SetType ("ns3::StaWifiMac",
-               "RifsSupported", BooleanValue (params.rifsSupported),
                "Ssid", SsidValue (ssid),
-               "BE_MaxAmpduSize", UintegerValue (0),
                "BE_BlockAckThreshold", UintegerValue (2),
                "ShortSlotTimeSupported", BooleanValue (params.enableShortSlotTime));
-  phy.Set ("GreenfieldEnabled", BooleanValue (false));
   nNGFStaDevice = wifi.Install (phy, mac, wifiNNGFStaNodes);
-  phy.Set ("GreenfieldEnabled", BooleanValue (true));
   nGFStaDevice = wifi.Install (phy, mac, wifiNGFStaNodes);
 
   // AP
@@ -194,13 +204,10 @@ Experiment::Run (Parameters params)
   mac.SetType ("ns3::ApWifiMac",
                "Ssid", SsidValue (ssid),
                "EnableBeaconJitter", BooleanValue (false),
-               "BE_MaxAmpduSize", UintegerValue (0),
                "BE_BlockAckThreshold", UintegerValue (2),
-               "RifsSupported", BooleanValue (params.rifsSupported),
                "RifsMode", BooleanValue (params.rifsMode),
                "EnableNonErpProtection", BooleanValue (params.enableErpProtection),
                "ShortSlotTimeSupported", BooleanValue (params.enableShortSlotTime));
-  phy.Set ("GreenfieldEnabled", BooleanValue (params.apSupportsGreenfield));
   apDevice = wifi.Install (phy, mac, wifiApNode);
 
   // Set TXOP limit
@@ -208,32 +215,42 @@ Experiment::Run (Parameters params)
     {
       Ptr<NetDevice> dev = wifiApNode.Get (0)->GetDevice (0);
       Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+      Ptr<HtConfiguration> htConfiguration = wifi_dev->GetHtConfiguration ();
+      htConfiguration->SetGreenfieldSupported (params.apSupportsGreenfield);
+      htConfiguration->SetRifsSupported (params.rifsSupported);
       Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
       PointerValue ptr;
-      wifi_mac->GetAttribute ("BE_EdcaTxopN", ptr);
-      Ptr<EdcaTxopN> edca = ptr.Get<EdcaTxopN> ();
+      wifi_mac->GetAttribute ("BE_Txop", ptr);
+      Ptr<QosTxop> edca = ptr.Get<QosTxop> ();
       edca->SetTxopLimit (MicroSeconds (3008));
     }
   if (nWifiNNGF > 0)
     {
       Ptr<NetDevice> dev = wifiNNGFStaNodes.Get (0)->GetDevice (0);
       Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+      Ptr<HtConfiguration> htConfiguration = wifi_dev->GetHtConfiguration ();
+      htConfiguration->SetRifsSupported (params.rifsSupported);
       Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
       PointerValue ptr;
-      wifi_mac->GetAttribute ("BE_EdcaTxopN", ptr);
-      Ptr<EdcaTxopN> edca = ptr.Get<EdcaTxopN> ();
+      wifi_mac->GetAttribute ("BE_Txop", ptr);
+      Ptr<QosTxop> edca = ptr.Get<QosTxop> ();
       edca->SetTxopLimit (MicroSeconds (3008));
     }
   if (nWifiNGF > 0)
     {
       Ptr<NetDevice> dev = wifiNGFStaNodes.Get (0)->GetDevice (0);
       Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+      Ptr<HtConfiguration> htConfiguration = wifi_dev->GetHtConfiguration ();
+      htConfiguration->SetGreenfieldSupported (true);
+      htConfiguration->SetRifsSupported (params.rifsSupported);
       Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
       PointerValue ptr;
-      wifi_mac->GetAttribute ("BE_EdcaTxopN", ptr);
-      Ptr<EdcaTxopN> edca = ptr.Get<EdcaTxopN> ();
+      wifi_mac->GetAttribute ("BE_Txop", ptr);
+      Ptr<QosTxop> edca = ptr.Get<QosTxop> ();
       edca->SetTxopLimit (MicroSeconds (3008));
     }
+
+  Config::Set ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/BeMaxAmpduSize", UintegerValue (0)); //Disable A-MPDU
 
   // Define mobility model
   MobilityHelper mobility;
@@ -322,7 +339,6 @@ Experiment::Run (Parameters params)
 
       Simulator::Stop (Seconds (simulationTime + 1));
       Simulator::Run ();
-      Simulator::Destroy ();
 
       uint64_t totalPacketsThrough = DynamicCast<UdpServer> (serverApp.Get (0))->GetReceived ();
       throughput = totalPacketsThrough * payloadSize * 8 / (simulationTime * 1000000.0);
@@ -368,11 +384,11 @@ Experiment::Run (Parameters params)
 
       Simulator::Stop (Seconds (simulationTime + 1));
       Simulator::Run ();
-      Simulator::Destroy ();
 
       uint64_t totalPacketsThrough = DynamicCast<PacketSink> (serverApp.Get (0))->GetTotalRx ();
       throughput += totalPacketsThrough * 8 / (simulationTime * 1000000.0);
     }
+  Simulator::Destroy ();
   return throughput;
 }
 

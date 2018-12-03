@@ -18,12 +18,17 @@
  * Author: Mathieu Lacage, <mathieu.lacage@sophia.inria.fr>
  */
 
+#include "ns3/packet.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
-#include "yans-wifi-channel.h"
+#include "ns3/net-device.h"
+#include "ns3/node.h"
 #include "ns3/propagation-loss-model.h"
 #include "ns3/propagation-delay-model.h"
+#include "ns3/mobility-model.h"
+#include "yans-wifi-channel.h"
+#include "yans-wifi-phy.h"
 #include "wifi-utils.h"
 
 namespace ns3 {
@@ -120,17 +125,24 @@ void
 YansWifiChannel::Receive (Ptr<YansWifiPhy> phy, Ptr<Packet> packet, double rxPowerDbm, Time duration)
 {
   NS_LOG_FUNCTION (phy << packet << rxPowerDbm << duration.GetSeconds ());
-  phy->StartReceivePreambleAndHeader (packet, DbmToW (rxPowerDbm + phy->GetRxGain ()), duration);
+  // Do no further processing if signal is too weak
+  // Current implementation assumes constant rx power over the packet duration
+  if ((rxPowerDbm + phy->GetRxGain ()) < phy->GetRxSensitivity ())
+    {
+      NS_LOG_INFO ("Received signal too weak to process: " << rxPowerDbm << " dBm");
+      return;
+    }
+  phy->StartReceivePreamble (packet, DbmToW (rxPowerDbm + phy->GetRxGain ()), duration);
 }
 
-uint32_t
+std::size_t
 YansWifiChannel::GetNDevices (void) const
 {
   return m_phyList.size ();
 }
 
 Ptr<NetDevice>
-YansWifiChannel::GetDevice (uint32_t i) const
+YansWifiChannel::GetDevice (std::size_t i) const
 {
   return m_phyList[i]->GetDevice ()->GetObject<NetDevice> ();
 }

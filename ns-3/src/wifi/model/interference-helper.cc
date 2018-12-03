@@ -19,11 +19,13 @@
  *          Sébastien Deronne <sebastien.deronne@gmail.com>
  */
 
-#include "interference-helper.h"
-#include "wifi-phy.h"
+#include "ns3/packet.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
-#include <algorithm>
+#include "interference-helper.h"
+#include "wifi-phy.h"
+#include "error-rate-model.h"
+#include "wifi-utils.h"
 
 namespace ns3 {
 
@@ -33,7 +35,7 @@ NS_LOG_COMPONENT_DEFINE ("InterferenceHelper");
  *       Phy event class
  ****************************************************************/
 
-InterferenceHelper::Event::Event (Ptr<const Packet> packet, WifiTxVector txVector, Time duration, double rxPower)
+Event::Event (Ptr<const Packet> packet, WifiTxVector txVector, Time duration, double rxPower)
   : m_packet (packet),
     m_txVector (txVector),
     m_startTime (Simulator::Now ()),
@@ -42,42 +44,42 @@ InterferenceHelper::Event::Event (Ptr<const Packet> packet, WifiTxVector txVecto
 {
 }
 
-InterferenceHelper::Event::~Event ()
+Event::~Event ()
 {
 }
 
 Ptr<const Packet>
-InterferenceHelper::Event::GetPacket (void) const
+Event::GetPacket (void) const
 {
   return m_packet;
 }
 
 Time
-InterferenceHelper::Event::GetStartTime (void) const
+Event::GetStartTime (void) const
 {
   return m_startTime;
 }
 
 Time
-InterferenceHelper::Event::GetEndTime (void) const
+Event::GetEndTime (void) const
 {
   return m_endTime;
 }
 
 double
-InterferenceHelper::Event::GetRxPowerW (void) const
+Event::GetRxPowerW (void) const
 {
   return m_rxPowerW;
 }
 
 WifiTxVector
-InterferenceHelper::Event::GetTxVector (void) const
+Event::GetTxVector (void) const
 {
   return m_txVector;
 }
 
 WifiMode
-InterferenceHelper::Event::GetPayloadMode (void) const
+Event::GetPayloadMode (void) const
 {
   return m_txVector.GetMode ();
 }
@@ -88,7 +90,7 @@ InterferenceHelper::Event::GetPayloadMode (void) const
  *       short period of time.
  ****************************************************************/
 
-InterferenceHelper::NiChange::NiChange (double power, Ptr<InterferenceHelper::Event> event)
+InterferenceHelper::NiChange::NiChange (double power, Ptr<Event> event)
   : m_power (power),
     m_event (event)
 {
@@ -106,7 +108,7 @@ InterferenceHelper::NiChange::AddPower (double power)
   m_power += power;
 }
 
-Ptr<InterferenceHelper::Event>
+Ptr<Event>
 InterferenceHelper::NiChange::GetEvent (void) const
 {
   return m_event;
@@ -133,10 +135,10 @@ InterferenceHelper::~InterferenceHelper ()
   m_errorRateModel = 0;
 }
 
-Ptr<InterferenceHelper::Event>
+Ptr<Event>
 InterferenceHelper::Add (Ptr<const Packet> packet, WifiTxVector txVector, Time duration, double rxPowerW)
 {
-  Ptr<InterferenceHelper::Event> event = Create<InterferenceHelper::Event> (packet, txVector, duration, rxPowerW);
+  Ptr<Event> event = Create<Event> (packet, txVector, duration, rxPowerW);
   AppendEvent (event);
   return event;
 }
@@ -155,12 +157,6 @@ void
 InterferenceHelper::SetNoiseFigure (double value)
 {
   m_noiseFigure = value;
-}
-
-double
-InterferenceHelper::GetNoiseFigure (void) const
-{
-  return m_noiseFigure;
 }
 
 void
@@ -200,7 +196,7 @@ InterferenceHelper::GetEnergyDuration (double energyW) const
 }
 
 void
-InterferenceHelper::AppendEvent (Ptr<InterferenceHelper::Event> event)
+InterferenceHelper::AppendEvent (Ptr<Event> event)
 {
   NS_LOG_FUNCTION (this);
   double previousPowerStart = 0;
@@ -224,7 +220,7 @@ InterferenceHelper::AppendEvent (Ptr<InterferenceHelper::Event> event)
 }
 
 double
-InterferenceHelper::CalculateSnr (double signal, double noiseInterference, uint8_t channelWidth) const
+InterferenceHelper::CalculateSnr (double signal, double noiseInterference, uint16_t channelWidth) const
 {
   //thermal noise at 290K in J/s = W
   static const double BOLTZMANN = 1.3803e-23;
@@ -234,26 +230,36 @@ InterferenceHelper::CalculateSnr (double signal, double noiseInterference, uint8
   double noiseFloor = m_noiseFigure * Nt;
   double noise = noiseFloor + noiseInterference;
   double snr = signal / noise; //linear scale
-  NS_LOG_DEBUG ("bandwidth(MHz)=" << +channelWidth << ", signal(W)= " << signal << ", noise(W)=" << noiseFloor << ", interference(W)=" << noiseInterference << ", snr(linear)=" << snr);
+  NS_LOG_DEBUG ("bandwidth(MHz)=" << channelWidth << ", signal(W)= " << signal << ", noise(W)=" << noiseFloor << ", interference(W)=" << noiseInterference << ", snr=" << RatioToDb(snr) << "dB");
   return snr;
 }
 
 double
-InterferenceHelper::CalculateNoiseInterferenceW (Ptr<InterferenceHelper::Event> event, NiChanges *ni) const
+InterferenceHelper::CalculateNoiseInterferenceW (Ptr<Event> event, NiChanges *ni) const
 {
-  double noiseInterference = m_firstPower;
+  double noiseInterferenceW = m_firstPower;
   auto it = m_niChanges.find (event->GetStartTime ());
-  for (; it != m_niChanges.end () && it->second.GetEvent () != event; ++it)
+  for (; it != m_niChanges.end (); ++it)
     {
-      noiseInterference = it->second.GetPower ();
+      if (it->second.GetEvent () == event)
+        {
+          continue;
+        }
+      if (it->first > Simulator::Now ())
+        {
+          break;
+        }
+      noiseInterferenceW = it->second.GetPower () - event->GetRxPowerW ();
     }
+  it = m_niChanges.find (event->GetStartTime ());
+  for (; it != m_niChanges.end () && it->second.GetEvent () != event; ++it);
   ni->emplace (event->GetStartTime (), NiChange (0, event));
   while (++it != m_niChanges.end () && it->second.GetEvent () != event)
     {
       ni->insert (*it);
     }
   ni->emplace (event->GetEndTime (), NiChange (0, event));
-  return noiseInterference;
+  return noiseInterferenceW;
 }
 
 double
@@ -279,7 +285,7 @@ InterferenceHelper::CalculateChunkSuccessRate (double snir, Time duration, WifiM
 }
 
 double
-InterferenceHelper::CalculatePlcpPayloadPer (Ptr<const InterferenceHelper::Event> event, NiChanges *ni) const
+InterferenceHelper::CalculatePlcpPayloadPer (Ptr<const Event> event, NiChanges *ni) const
 {
   NS_LOG_FUNCTION (this);
   const WifiTxVector txVector = event->GetTxVector ();
@@ -327,7 +333,7 @@ InterferenceHelper::CalculatePlcpPayloadPer (Ptr<const InterferenceHelper::Event
 }
 
 double
-InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const InterferenceHelper::Event> event, NiChanges *ni) const
+InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const Event> event, NiChanges *ni) const
 {
   NS_LOG_FUNCTION (this);
   const WifiTxVector txVector = event->GetTxVector ();
@@ -461,7 +467,7 @@ InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const InterferenceHelper::Event>
           //Case 3c: current with previous in HT-SIG or SIG-A
           else
             {
-              //Case 3bi: VHT or HE format
+              //Case 3ci: VHT or HE format
               if (preamble == WIFI_PREAMBLE_VHT || preamble == WIFI_PREAMBLE_HE_SU)
                 {
                   //SIG-A is sent using legacy OFDM modulation
@@ -472,7 +478,7 @@ InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const InterferenceHelper::Event>
                                                     headerMode, txVector);
                   NS_LOG_DEBUG ("Case 3ci - previous with current in SIG-A: mode=" << headerMode << ", psr=" << psr);
                 }
-              //Case 3bii: HT mixed format or HT greenfield
+              //Case 3cii: HT mixed format or HT greenfield
               else
                 {
                   psr *= CalculateChunkSuccessRate (CalculateSnr (powerW,
@@ -605,7 +611,7 @@ InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const InterferenceHelper::Event>
                                                               txVector.GetChannelWidth ()),
                                                 current - previous,
                                                 headerMode, txVector);
-              NS_LOG_DEBUG ("Case 3c - current with previous in L-SIG: mode=" << headerMode << ", psr=" << psr);
+              NS_LOG_DEBUG ("Case 4d - current with previous in L-SIG: mode=" << headerMode << ", psr=" << psr);
             }
         }
       //Case 5: previous is in the preamble works for all cases
@@ -742,7 +748,7 @@ InterferenceHelper::CalculatePlcpHeaderPer (Ptr<const InterferenceHelper::Event>
 }
 
 struct InterferenceHelper::SnrPer
-InterferenceHelper::CalculatePlcpPayloadSnrPer (Ptr<InterferenceHelper::Event> event) const
+InterferenceHelper::CalculatePlcpPayloadSnrPer (Ptr<Event> event) const
 {
   NiChanges ni;
   double noiseInterferenceW = CalculateNoiseInterferenceW (event, &ni);
@@ -762,7 +768,7 @@ InterferenceHelper::CalculatePlcpPayloadSnrPer (Ptr<InterferenceHelper::Event> e
 }
 
 struct InterferenceHelper::SnrPer
-InterferenceHelper::CalculatePlcpHeaderSnrPer (Ptr<InterferenceHelper::Event> event) const
+InterferenceHelper::CalculatePlcpHeaderSnrPer (Ptr<Event> event) const
 {
   NiChanges ni;
   double noiseInterferenceW = CalculateNoiseInterferenceW (event, &ni);

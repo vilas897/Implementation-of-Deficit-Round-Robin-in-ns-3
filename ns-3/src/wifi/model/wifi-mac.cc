@@ -18,8 +18,15 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 
-#include "wifi-mac.h"
 #include "ns3/log.h"
+#include "ns3/packet.h"
+#include "wifi-mac.h"
+#include "txop.h"
+#include "ssid.h"
+#include "wifi-net-device.h"
+#include "ht-configuration.h"
+#include "vht-configuration.h"
+#include "he-configuration.h"
 
 namespace ns3 {
 
@@ -117,32 +124,6 @@ WifiMac::GetDefaultCompressedBlockAckTimeout (void)
   return blockAckTimeout;
 }
 
-void
-WifiMac::SetBasicBlockAckTimeout (Time blockAckTimeout)
-{
-  //this method must be implemented by QoS WifiMacs
-}
-
-Time
-WifiMac::GetBasicBlockAckTimeout (void) const
-{
-  //this method must be implemented by QoS WifiMacs
-  return MicroSeconds (0);
-}
-
-void
-WifiMac::SetCompressedBlockAckTimeout (Time blockAckTimeout)
-{
-  //this methos must be implemented by QoS WifiMacs
-}
-
-Time
-WifiMac::GetCompressedBlockAckTimeout (void) const
-{
-  //this method must be implemented by QoS WifiMacs
-  return MicroSeconds (0);
-}
-
 TypeId
 WifiMac::GetTypeId (void)
 {
@@ -196,7 +177,7 @@ WifiMac::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("MaxPropagationDelay", "The maximum propagation delay. Unused for now.",
                    TimeValue (GetDefaultMaxPropagationDelay ()),
-                   MakeTimeAccessor (&WifiMac::m_maxPropagationDelay),
+                   MakeTimeAccessor (&WifiMac::SetMaxPropagationDelay),
                    MakeTimeChecker ())
     .AddAttribute ("Ssid", "The ssid we want to belong to.",
                    SsidValue (Ssid ("default")),
@@ -226,14 +207,26 @@ WifiMac::GetTypeId (void)
                      "A packet has been dropped in the MAC layer after it has been passed up from the physical layer.",
                      MakeTraceSourceAccessor (&WifiMac::m_macRxDropTrace),
                      "ns3::Packet::TracedCallback")
-    //Not currently implemented in this device
-    /*
-    .AddTraceSource ("Sniffer",
-                     "Trace source simulating a non-promiscuous packet sniffer attached to the device",
-                     MakeTraceSourceAccessor (&WifiMac::m_snifferTrace))
-    */
   ;
   return tid;
+}
+
+void
+WifiMac::DoDispose ()
+{
+  m_device = 0;
+}
+
+void
+WifiMac::SetDevice (const Ptr<NetDevice> device)
+{
+  m_device = device;
+}
+
+Ptr<NetDevice>
+WifiMac::GetDevice (void) const
+{
+  return m_device;
 }
 
 void
@@ -241,18 +234,6 @@ WifiMac::SetMaxPropagationDelay (Time delay)
 {
   NS_LOG_FUNCTION (this << delay);
   m_maxPropagationDelay = delay;
-}
-
-Time
-WifiMac::GetMsduLifetime (void) const
-{
-  return Seconds (10);
-}
-
-Time
-WifiMac::GetMaxPropagationDelay (void) const
-{
-  return m_maxPropagationDelay;
 }
 
 void
@@ -434,13 +415,14 @@ WifiMac::Configure80211ax_5Ghz (void)
 {
   NS_LOG_FUNCTION (this);
   Configure80211ac ();
+  SetCompressedBlockAckTimeout (GetSifs () + GetSlot () + MicroSeconds (85) + GetDefaultMaxPropagationDelay () * 2);
 }
 
 void
-WifiMac::ConfigureDcf (Ptr<DcaTxop> dcf, uint32_t cwmin, uint32_t cwmax, bool isDsss, AcIndex ac)
+WifiMac::ConfigureDcf (Ptr<Txop> dcf, uint32_t cwmin, uint32_t cwmax, bool isDsss, AcIndex ac)
 {
   NS_LOG_FUNCTION (this << dcf << cwmin << cwmax << isDsss << ac);
-  /* see IEE802.11 section 7.3.2.29 */
+  /* see IEEE 802.11 section 7.3.2.29 */
   switch (ac)
     {
     case AC_VO:
@@ -491,6 +473,27 @@ WifiMac::ConfigureDcf (Ptr<DcaTxop> dcf, uint32_t cwmin, uint32_t cwmax, bool is
       NS_FATAL_ERROR ("I don't know what to do with this");
       break;
     }
+}
+
+Ptr<HtConfiguration>
+WifiMac::GetHtConfiguration (void) const
+{
+      Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice> (GetDevice ());
+      return device->GetHtConfiguration ();
+}
+
+Ptr<VhtConfiguration>
+WifiMac::GetVhtConfiguration (void) const
+{
+      Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice> (GetDevice ());
+      return device->GetVhtConfiguration ();
+}
+
+Ptr<HeConfiguration>
+WifiMac::GetHeConfiguration (void) const
+{
+      Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice> (GetDevice ());
+      return device->GetHeConfiguration ();
 }
 
 } //namespace ns3
