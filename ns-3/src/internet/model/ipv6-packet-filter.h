@@ -51,6 +51,29 @@ private:
   virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const = 0;
 };
 
+/**
+ * \ingroup internet
+ *
+ * DRRIpv6PacketFilter is the filter to be added to the DRR
+ * queue disc to simulate the behavior of the fq-codel Linux queue disc.
+ *
+ */
+class DRRIpv6PacketFilter : public Ipv6PacketFilter {
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  DRRIpv6PacketFilter ();
+  virtual ~DRRIpv6PacketFilter ();
+
+private:
+  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
+
+};
+
 } // namespace ns3
 
 #endif /* IPV6_PACKET_FILTER */
